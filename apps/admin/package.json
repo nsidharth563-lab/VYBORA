@@ -1,0 +1,6 @@
+{
+  "name": "@vybora/admin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "VYBORA admin dashboard (Next.js App Router). Scaffolded in Phase 14 after approval."
+}

@@ -1,0 +1,28 @@
+{
+  "name": "vybora",
+  "private": true,
+  "description": "VYBORA — Connect. Create. Discover.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "infra:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "db:generate": "pnpm --filter @vybora/api db:generate",
+    "db:migrate": "pnpm --filter @vybora/api db:migrate",
+    "db:validate": "pnpm --filter @vybora/api db:validate",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.11.13",
+    "typescript": "~5.9.3"
+  }
+}

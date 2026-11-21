@@ -1,0 +1,28 @@
+{
+  "name": "@vybora/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runtime-agnostic helpers and validation rules shared by all apps.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@vybora/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@vybora/config": "workspace:*",
+    "typescript": "~5.9.3"
+  }
+}

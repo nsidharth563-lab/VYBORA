@@ -1,0 +1,6 @@
+{
+  "name": "@vybora/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "VYBORA mobile app (Expo + React Native + Expo Router). Scaffolded in Phase 1 after approval."
+}

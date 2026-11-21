@@ -1,0 +1,2119 @@
+// =============================================================================
+// VYBORA — PostgreSQL schema (Prisma 7)
+// =============================================================================
+// Conventions
+//   * Primary keys: UUIDv7 (time-ordered → index-friendly, safe to expose).
+//   * Money: integer minor units (paise/cents) + ISO-4217 currency. Never floats.
+//   * Soft delete: `deletedAt` on user-generated content; hard purge by jobs.
+//   * Counters (likeCount, followerCount…) are denormalized and maintained by
+//     the API/worker; source-of-truth rows always exist for recount jobs.
+//   * Table names are snake_case plural via @@map; columns are camelCase.
+//   * High-volume ephemeral data (presence, typing, impressions, rate limits,
+//     trending windows) lives in Redis / analytics, NOT in this schema.
+// See documentation/database/SCHEMA.md for the ERD and rationale.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  STAFF
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+  PENDING_DELETION
+  DELETED
+}
+
+enum StaffRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  SUPPORT
+  FINANCE
+  ANALYST
+}
+
+enum AuthProvider {
+  GOOGLE
+  APPLE
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum VerificationChannel {
+  EMAIL
+  SMS
+}
+
+enum VerificationPurpose {
+  VERIFY_EMAIL
+  VERIFY_PHONE
+  LOGIN_OTP
+  PASSWORD_RESET
+  ACCOUNT_DELETION
+  CHANGE_EMAIL
+  CHANGE_PHONE
+}
+
+enum AudienceSetting {
+  EVERYONE
+  FOLLOWERS
+  MUTUALS
+  NOBODY
+}
+
+enum FollowStatus {
+  ACCEPTED
+  PENDING
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+}
+
+enum MediaStatus {
+  PENDING_UPLOAD
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+  QUARANTINED
+}
+
+enum PostType {
+  PHOTO
+  VIDEO
+  CAROUSEL
+  REEL
+  TEXT
+}
+
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  CLOSE_FRIENDS
+  COMMUNITY
+  SUBSCRIBERS
+}
+
+enum AccessLevel {
+  FREE
+  SUBSCRIBERS
+  PAID
+}
+
+enum ContentStatus {
+  ACTIVE
+  HIDDEN
+  REMOVED
+}
+
+enum StoryType {
+  PHOTO
+  VIDEO
+  TEXT
+}
+
+enum StoryAudience {
+  PUBLIC
+  FOLLOWERS
+  CLOSE_FRIENDS
+  CUSTOM
+}
+
+enum StickerType {
+  POLL
+  QUESTION
+  QUIZ
+  EMOJI_SLIDER
+  MENTION
+  HASHTAG
+  LOCATION
+  LINK
+  MUSIC
+  COUNTDOWN
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+  COMMUNITY
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  VOICE
+  FILE
+  POST_SHARE
+  STORY_REPLY
+  TRACK_SHARE
+  SYSTEM
+  ENCRYPTED
+}
+
+enum CommunityVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CommunityRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum CommunityMemberStatus {
+  ACTIVE
+  PENDING
+  BANNED
+}
+
+enum RsvpStatus {
+  GOING
+  INTERESTED
+  NOT_GOING
+}
+
+enum PlaylistVisibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum PaymentProvider {
+  STRIPE
+  RAZORPAY
+}
+
+enum PaymentKind {
+  TIP
+  GIFT
+  SUBSCRIPTION
+  CONTENT_UNLOCK
+  PROMOTION
+}
+
+enum PaymentStatus {
+  PENDING
+  REQUIRES_ACTION
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  DISPUTED
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum CreatorStatus {
+  APPLIED
+  ACTIVE
+  RESTRICTED
+  DISABLED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum LedgerAccountType {
+  CREATOR_AVAILABLE
+  CREATOR_PENDING
+  PLATFORM_REVENUE
+  PROVIDER_CLEARING
+  PROVIDER_FEES
+  PAYOUTS_IN_TRANSIT
+  PROMOTION_SPEND
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum PayoutStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  PROCESSING
+  PAID
+  REJECTED
+  FAILED
+}
+
+enum PromotionStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  COMPLETED
+  REJECTED
+}
+
+enum CollabStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+enum NotificationType {
+  FOLLOW
+  FOLLOW_REQUEST
+  FOLLOW_ACCEPTED
+  LIKE
+  COMMENT
+  COMMENT_REPLY
+  COMMENT_LIKE
+  MENTION
+  MESSAGE
+  STORY_REACTION
+  STORY_REPLY
+  SUBSCRIPTION_PURCHASED
+  TIP_RECEIVED
+  GIFT_RECEIVED
+  EARNINGS_UPDATE
+  PAYOUT_UPDATE
+  COMMUNITY_INVITE
+  COMMUNITY_ACTIVITY
+  COMMUNITY_EVENT
+  SYSTEM
+}
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  STORY
+  MESSAGE
+  COMMUNITY
+  TRACK
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  HATE_SPEECH
+  VIOLENCE
+  NUDITY
+  SELF_HARM
+  CHILD_SAFETY
+  MISINFORMATION
+  IMPERSONATION
+  INTELLECTUAL_PROPERTY
+  SCAM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  ACTIONED
+  DISMISSED
+}
+
+enum ModerationActionType {
+  REMOVE_CONTENT
+  RESTORE_CONTENT
+  HIDE_CONTENT
+  WARN_USER
+  SUSPEND_USER
+  UNSUSPEND_USER
+  BAN_USER
+  VERIFY_USER
+  UNVERIFY_USER
+  RESTRICT_CREATOR
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AiJobKind {
+  CAPTION
+  HASHTAGS
+  BIO
+  PHOTO_ENHANCE
+  BACKGROUND_REMOVAL
+  IMAGE_GENERATION
+  VIDEO_ASSIST
+  REEL_IDEAS
+  CONTENT_CALENDAR
+  VOICE_TO_CAPTION
+  TRANSLATION
+  CONTENT_SUGGESTIONS
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum CalendarEntryStatus {
+  IDEA
+  PLANNED
+  SCHEDULED
+  PUBLISHED
+  SKIPPED
+}
+
+enum ActorType {
+  USER
+  STAFF
+  SYSTEM
+}
+
+// -----------------------------------------------------------------------------
+// IDENTITY & AUTH
+// -----------------------------------------------------------------------------
+
+model User {
+  id                  String        @id @default(uuid(7)) @db.Uuid
+  /// Stored normalized (trimmed, lowercased). Unique when present.
+  email               String?       @unique
+  emailVerifiedAt     DateTime?
+  /// E.164 format. Unique when present.
+  phone               String?       @unique
+  phoneVerifiedAt     DateTime?
+  /// argon2id hash; null for social-only accounts.
+  passwordHash        String?
+  /// Lowercase; validated by @vybora/shared validateUsername.
+  username            String        @unique
+  displayName         String
+  bio                 String?
+  website             String?
+  avatarMediaId       String?       @db.Uuid
+  coverMediaId        String?       @db.Uuid
+  isPrivate           Boolean       @default(false)
+  isVerified          Boolean       @default(false)
+  role                UserRole      @default(USER)
+  status              AccountStatus @default(ACTIVE)
+  suspendedUntil      DateTime?
+  locale              String        @default("en")
+  countryCode         String?       @db.Char(2)
+  dateOfBirth         DateTime?     @db.Date
+  followerCount       Int           @default(0)
+  followingCount      Int           @default(0)
+  postCount           Int           @default(0)
+  /// Bumped on password change / "log out everywhere"; embedded in access JWT.
+  tokenVersion        Int           @default(0)
+  lastActiveAt        DateTime?
+  deletionRequestedAt DateTime?
+  /// Grace period end; purge job hard-deletes after this.
+  deletionScheduledAt DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+
+  avatar MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  cover  MediaAsset? @relation("UserCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+
+  oauthAccounts     OAuthAccount[]
+  sessions          Session[]
+  verificationCodes VerificationCode[]
+  pushTokens        PushToken[]
+  settings          UserSettings?
+  notificationPrefs NotificationPreference[]
+  staff             StaffMember?
+  interests         UserInterest[]
+
+  following     Follow[]      @relation("Follower")
+  followers     Follow[]      @relation("Following")
+  blocking      Block[]       @relation("Blocker")
+  blockedBy     Block[]       @relation("Blocked")
+  restricting   Restrict[]    @relation("Restricter")
+  restrictedBy  Restrict[]    @relation("Restricted")
+  mutes         Mute[]        @relation("Muter")
+  mutedBy       Mute[]        @relation("Muted")
+  closeFriends  CloseFriend[] @relation("CloseFriendOwner")
+  closeFriendOf CloseFriend[] @relation("CloseFriendMember")
+
+  media           MediaAsset[]     @relation("MediaOwner")
+  posts           Post[]
+  postLikes       PostLike[]
+  comments        Comment[]
+  commentLikes    CommentLike[]
+  savedPosts      SavedPost[]
+  saveCollections SaveCollection[]
+  postMentions    PostMention[]
+
+  stories          Story[]
+  storyViews       StoryView[]
+  storyReactions   StoryReaction[]
+  storyAudience    StoryAudienceMember[]
+  stickerResponses StickerResponse[]
+  highlights       Highlight[]
+
+  conversationsMember ConversationMember[]
+  conversationsMade   Conversation[]       @relation("ConversationCreator")
+  messagesSent        Message[]            @relation("MessageSender")
+  messageReactions    MessageReaction[]
+  hiddenMessages      MessageHidden[]
+  e2eeDevices         E2eeDevice[]
+
+  artistProfile       Artist?
+  artistFollows       ArtistFollow[]
+  playlists           Playlist[]
+  playlistCollabs     PlaylistCollaborator[]
+  playlistTracksAdded PlaylistTrack[]
+
+  communitiesOwned Community[]          @relation("CommunityOwner")
+  communityMembers CommunityMember[]
+  communityEvents  CommunityEvent[]
+  eventRsvps       CommunityEventRsvp[]
+
+  creatorProfile     CreatorProfile?
+  subscriptions      CreatorSubscription[] @relation("Subscriber")
+  paymentsMade       Payment[]             @relation("Payer")
+  paymentsReceived   Payment[]             @relation("PaymentRecipient")
+  giftsSent          GiftTransaction[]     @relation("GiftSender")
+  giftsReceived      GiftTransaction[]     @relation("GiftRecipient")
+  contentUnlocks     ContentUnlock[]
+  promotions         Promotion[]
+  brands             Brand[]
+  collabApplications CollabApplication[]
+
+  notifications      Notification[] @relation("NotificationRecipient")
+  notificationsActed Notification[] @relation("NotificationActor")
+
+  reportsFiled        Report[]              @relation("Reporter")
+  reportsAssigned     Report[]              @relation("ReportAssignee")
+  moderationActions   ModerationAction[]    @relation("Moderator")
+  moderationTargeted  ModerationAction[]    @relation("ModeratedUser")
+  verificationReqs    VerificationRequest[] @relation("VerificationApplicant")
+  verificationReviews VerificationRequest[] @relation("VerificationReviewer")
+  payoutsReviewed     Payout[]              @relation("PayoutReviewer")
+
+  aiJobs          AiJob[]
+  calendarEntries ContentCalendarEntry[]
+  dataExports     DataExportRequest[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model OAuthAccount {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  userId         String       @db.Uuid
+  provider       AuthProvider
+  /// Stable subject ("sub") claim from the verified provider ID token.
+  providerUserId String
+  email          String?
+  createdAt      DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+/// One row per signed-in device. Listed in Settings → Security → Sessions.
+model Session {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  userId     String          @db.Uuid
+  deviceName String?
+  platform   DevicePlatform?
+  appVersion String?
+  /// Coarse location for "new login" alerts (city/country), never raw IP.
+  ipCountry  String?         @db.Char(2)
+  ipHash     String?
+  userAgent  String?
+  createdAt  DateTime        @default(now())
+  lastSeenAt DateTime        @default(now())
+  revokedAt  DateTime?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  pushTokens    PushToken[]
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+/// Rotating refresh tokens. Only a SHA-256 hash is stored. Reuse of a rotated
+/// token revokes the whole family (session) — standard theft detection.
+model RefreshToken {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  sessionId    String    @db.Uuid
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  rotatedAt    DateTime?
+  revokedAt    DateTime?
+  replacedById String?   @unique @db.Uuid
+  createdAt    DateTime  @default(now())
+
+  session    Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("TokenRotation")
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+/// OTP / magic codes. Hashed, short-lived, attempt-limited.
+model VerificationCode {
+  id         String              @id @default(uuid(7)) @db.Uuid
+  userId     String?             @db.Uuid
+  channel    VerificationChannel
+  /// Normalized email or E.164 phone the code was sent to.
+  target     String
+  purpose    VerificationPurpose
+  codeHash   String
+  attempts   Int                 @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime            @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([target, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+/// FCM / APNs (via FCM) registration tokens, tied to a session so logout removes them.
+model PushToken {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  userId    String         @db.Uuid
+  sessionId String?        @db.Uuid
+  token     String         @unique
+  platform  DevicePlatform
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+model UserSettings {
+  userId                 String          @id @db.Uuid
+  allowMessagesFrom      AudienceSetting @default(EVERYONE)
+  allowMentionsFrom      AudienceSetting @default(EVERYONE)
+  allowTagsFrom          AudienceSetting @default(EVERYONE)
+  allowStoryRepliesFrom  AudienceSetting @default(FOLLOWERS)
+  showActivityStatus     Boolean         @default(true)
+  showReadReceipts       Boolean         @default(true)
+  hideLikeCounts         Boolean         @default(false)
+  sensitiveContentFilter Boolean         @default(true)
+  /// Explicit, revocable consent for location-based discovery (GDPR Art. 7).
+  locationConsentAt      DateTime?
+  personalizedAdsConsent Boolean         @default(false)
+  analyticsConsent       Boolean         @default(true)
+  /// Words/phrases auto-hidden from comments & message requests.
+  hiddenWords            String[]        @default([])
+  theme                  String          @default("system")
+  updatedAt              DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model NotificationPreference {
+  userId String           @db.Uuid
+  type   NotificationType
+  push   Boolean          @default(true)
+  inApp  Boolean          @default(true)
+  email  Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+  @@map("notification_preferences")
+}
+
+/// Admin dashboard access. RBAC permissions per role are defined in code
+/// (apps/api/src/modules/admin/permissions.ts) so they are reviewed in PRs.
+model StaffMember {
+  userId    String      @id @db.Uuid
+  roles     StaffRole[]
+  mfaSecret String?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_members")
+}
+
+// -----------------------------------------------------------------------------
+// SOCIAL GRAPH
+// -----------------------------------------------------------------------------
+
+model Follow {
+  followerId  String       @db.Uuid
+  followingId String       @db.Uuid
+  status      FollowStatus @default(ACCEPTED)
+  createdAt   DateTime     @default(now())
+  acceptedAt  DateTime?
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId, status, createdAt])
+  @@index([followerId, status, createdAt])
+  @@map("follows")
+}
+
+model Block {
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+/// "Restrict": restricted user's comments are visible only to themselves,
+/// their DMs go to requests, and they cannot see your online status.
+model Restrict {
+  restricterId String   @db.Uuid
+  restrictedId String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  restricter User @relation("Restricter", fields: [restricterId], references: [id], onDelete: Cascade)
+  restricted User @relation("Restricted", fields: [restrictedId], references: [id], onDelete: Cascade)
+
+  @@id([restricterId, restrictedId])
+  @@map("restricts")
+}
+
+model Mute {
+  muterId     String   @db.Uuid
+  mutedId     String   @db.Uuid
+  mutePosts   Boolean  @default(true)
+  muteStories Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  muter User @relation("Muter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("Muted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@id([muterId, mutedId])
+  @@map("mutes")
+}
+
+model CloseFriend {
+  ownerId   String   @db.Uuid
+  friendId  String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  owner  User @relation("CloseFriendOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  friend User @relation("CloseFriendMember", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([ownerId, friendId])
+  @@map("close_friends")
+}
+
+model Interest {
+  id   String @id @default(uuid(7)) @db.Uuid
+  slug String @unique
+  name String
+
+  users       UserInterest[]
+  communities CommunityInterest[]
+
+  @@map("interests")
+}
+
+model UserInterest {
+  userId     String @db.Uuid
+  interestId String @db.Uuid
+  weight     Float  @default(1)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([userId, interestId])
+  @@map("user_interests")
+}
+
+// -----------------------------------------------------------------------------
+// MEDIA (S3-compatible storage; FFmpeg/sharp processing in workers)
+// -----------------------------------------------------------------------------
+
+model MediaAsset {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  ownerId       String      @db.Uuid
+  kind          MediaKind
+  status        MediaStatus @default(PENDING_UPLOAD)
+  /// Object key of the original upload (private bucket).
+  storageKey    String      @unique
+  mimeType      String
+  sizeBytes     BigInt?
+  width         Int?
+  height        Int?
+  durationMs    Int?
+  /// Compact placeholder rendered while the real image loads.
+  blurhash      String?
+  sha256        String?
+  /// Processed renditions: { "thumb": key, "720p": key, "hls": key, ... }
+  variants      Json?
+  /// True for client-side encrypted DM attachments (server cannot read them).
+  isEncrypted   Boolean     @default(false)
+  moderation    Json?
+  failureReason String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  owner            User           @relation("MediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  avatarOf         User[]         @relation("UserAvatar")
+  coverOf          User[]         @relation("UserCover")
+  postItems        PostMedia[]
+  stories          Story[]
+  messages         Message[]
+  highlights       Highlight[]
+  communityAvatars Community[]    @relation("CommunityAvatar")
+  communityCovers  Community[]    @relation("CommunityCover")
+  playlists        Playlist[]
+  tracks           Track[]
+  aiInputs         AiJob[]        @relation("AiInputMedia")
+  aiOutputs        AiJob[]        @relation("AiOutputMedia")
+  conversations    Conversation[]
+
+  @@index([ownerId, createdAt])
+  @@index([status])
+  @@map("media_assets")
+}
+
+// -----------------------------------------------------------------------------
+// POSTS & REELS (a reel is a Post with type = REEL — shared engagement stack)
+// -----------------------------------------------------------------------------
+
+model Place {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  name        String
+  latitude    Float
+  longitude   Float
+  /// Precision-6 geohash (~1.2km) for cheap proximity queries before PostGIS.
+  geohash     String
+  countryCode String? @db.Char(2)
+  city        String?
+  providerRef String?
+
+  posts Post[]
+
+  @@index([geohash])
+  @@map("places")
+}
+
+model Post {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  authorId         String        @db.Uuid
+  type             PostType
+  caption          String?
+  visibility       Visibility    @default(PUBLIC)
+  accessLevel      AccessLevel   @default(FREE)
+  priceMinor       Int?
+  currency         String?       @db.Char(3)
+  status           ContentStatus @default(ACTIVE)
+  communityId      String?       @db.Uuid
+  isAnnouncement   Boolean       @default(false)
+  isPinned         Boolean       @default(false)
+  placeId          String?       @db.Uuid
+  trackId          String?       @db.Uuid
+  trackStartMs     Int?
+  /// Duet / remix lineage — always credited to the original creator.
+  remixOfId        String?       @db.Uuid
+  duetOfId         String?       @db.Uuid
+  allowRemix       Boolean       @default(true)
+  commentsDisabled Boolean       @default(false)
+  hideLikeCount    Boolean       @default(false)
+  /// Auto-generated captions (WebVTT key in storage) for accessibility.
+  subtitlesKey     String?
+  language         String?
+  likeCount        Int           @default(0)
+  commentCount     Int           @default(0)
+  shareCount       Int           @default(0)
+  saveCount        Int           @default(0)
+  viewCount        BigInt        @default(0)
+  /// Precomputed ranking score (see documentation/architecture/RANKING.md).
+  rankScore        Float         @default(0)
+  publishedAt      DateTime      @default(now())
+  scheduledFor     DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  place     Place?     @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  track     Track?     @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  remixOf   Post?      @relation("Remix", fields: [remixOfId], references: [id], onDelete: SetNull)
+  remixes   Post[]     @relation("Remix")
+  duetOf    Post?      @relation("Duet", fields: [duetOfId], references: [id], onDelete: SetNull)
+  duets     Post[]     @relation("Duet")
+
+  media            PostMedia[]
+  hashtags         PostHashtag[]
+  mentions         PostMention[]
+  likes            PostLike[]
+  comments         Comment[]
+  saves            SavedPost[]
+  unlocks          ContentUnlock[]
+  promotions       Promotion[]
+  sharedInMessages Message[]
+  gifts            GiftTransaction[]
+  calendarEntries  ContentCalendarEntry[]
+
+  @@index([authorId, publishedAt(sort: Desc)])
+  @@index([type, status, publishedAt(sort: Desc)])
+  @@index([type, status, rankScore(sort: Desc)])
+  @@index([communityId, publishedAt(sort: Desc)])
+  @@index([trackId])
+  @@index([placeId])
+  @@index([remixOfId])
+  @@map("posts")
+}
+
+model PostMedia {
+  postId   String  @db.Uuid
+  mediaId  String  @db.Uuid
+  position Int
+  altText  String?
+  /// Non-destructive edit params (crop, filter id, trim in/out) applied at render.
+  edits    Json?
+
+  post  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([postId, position])
+  @@index([mediaId])
+  @@map("post_media")
+}
+
+model Hashtag {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  /// Lowercase, without '#'.
+  name      String   @unique
+  postCount Int      @default(0)
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  posts PostHashtag[]
+
+  @@map("hashtags")
+}
+
+model PostHashtag {
+  postId    String @db.Uuid
+  hashtagId String @db.Uuid
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@index([hashtagId])
+  @@map("post_hashtags")
+}
+
+model PostMention {
+  postId String @db.Uuid
+  userId String @db.Uuid
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_mentions")
+}
+
+model PostLike {
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId, createdAt])
+  @@map("post_likes")
+}
+
+model Comment {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  postId       String        @db.Uuid
+  authorId     String        @db.Uuid
+  /// One level of threading: replies point at a top-level comment.
+  parentId     String?       @db.Uuid
+  body         String
+  status       ContentStatus @default(ACTIVE)
+  /// Set when author is restricted by the post owner: visible only to author.
+  isRestricted Boolean       @default(false)
+  isPinned     Boolean       @default(false)
+  likeCount    Int           @default(0)
+  replyCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?      @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("Replies")
+  likes   CommentLike[]
+
+  @@index([postId, parentId, createdAt])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model CommentLike {
+  userId    String   @db.Uuid
+  commentId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
+  @@map("comment_likes")
+}
+
+model SaveCollection {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  ownerId   String   @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+
+  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items SavedPost[]
+
+  @@unique([ownerId, name])
+  @@map("save_collections")
+}
+
+model SavedPost {
+  userId       String   @db.Uuid
+  postId       String   @db.Uuid
+  collectionId String?  @db.Uuid
+  createdAt    DateTime @default(now())
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  collection SaveCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@id([userId, postId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("saved_posts")
+}
+
+// -----------------------------------------------------------------------------
+// STORIES
+// -----------------------------------------------------------------------------
+
+model Story {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  authorId     String        @db.Uuid
+  type         StoryType
+  mediaId      String?       @db.Uuid
+  /// For TEXT stories: { text, font, background, alignment }.
+  textContent  Json?
+  trackId      String?       @db.Uuid
+  trackStartMs Int?
+  audience     StoryAudience @default(FOLLOWERS)
+  allowReplies Boolean       @default(true)
+  status       ContentStatus @default(ACTIVE)
+  viewCount    Int           @default(0)
+  /// createdAt + 24h. Expired stories remain for the author's archive/highlights.
+  expiresAt    DateTime
+  createdAt    DateTime      @default(now())
+  deletedAt    DateTime?
+
+  author         User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  media          MediaAsset?           @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  track          Track?                @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  customAudience StoryAudienceMember[]
+  stickers       StorySticker[]
+  views          StoryView[]
+  reactions      StoryReaction[]
+  highlightItems HighlightItem[]
+  replies        Message[]
+
+  @@index([authorId, expiresAt])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+model StoryAudienceMember {
+  storyId String @db.Uuid
+  userId  String @db.Uuid
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, userId])
+  @@map("story_audience_members")
+}
+
+model StorySticker {
+  id      String      @id @default(uuid(7)) @db.Uuid
+  storyId String      @db.Uuid
+  type    StickerType
+  /// Normalized position/scale/rotation: { x, y, scale, rotation }.
+  layout  Json
+  /// Type-specific config, e.g. POLL { question, options[] }.
+  data    Json
+
+  story     Story             @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  responses StickerResponse[]
+
+  @@index([storyId])
+  @@map("story_stickers")
+}
+
+model StickerResponse {
+  stickerId   String   @db.Uuid
+  userId      String   @db.Uuid
+  optionIndex Int?
+  text        String?
+  value       Float?
+  createdAt   DateTime @default(now())
+
+  sticker StorySticker @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([stickerId, userId])
+  @@map("sticker_responses")
+}
+
+model StoryView {
+  storyId  String   @db.Uuid
+  viewerId String   @db.Uuid
+  viewedAt DateTime @default(now())
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, viewerId])
+  @@index([storyId, viewedAt])
+  @@map("story_views")
+}
+
+model StoryReaction {
+  storyId   String   @db.Uuid
+  userId    String   @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, userId])
+  @@map("story_reactions")
+}
+
+model Highlight {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  ownerId      String   @db.Uuid
+  title        String
+  coverMediaId String?  @db.Uuid
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cover MediaAsset?     @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  items HighlightItem[]
+
+  @@index([ownerId, position])
+  @@map("highlights")
+}
+
+model HighlightItem {
+  highlightId String   @db.Uuid
+  storyId     String   @db.Uuid
+  position    Int
+  addedAt     DateTime @default(now())
+
+  highlight Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  story     Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@id([highlightId, storyId])
+  @@map("highlight_items")
+}
+
+// -----------------------------------------------------------------------------
+// MESSAGING
+// -----------------------------------------------------------------------------
+// Two storage modes per conversation:
+//   * isE2ee = false → server-readable `body` (community channels, groups that
+//     opt out, message requests before acceptance). TLS + encryption at rest.
+//   * isE2ee = true  → `body` is null; per-recipient-device ciphertext lives in
+//     MessageEnvelope (Signal Protocol). Server only routes opaque bytes.
+// Typing indicators and presence are Redis/WebSocket only, never persisted.
+// -----------------------------------------------------------------------------
+
+model Conversation {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  type          ConversationType
+  title         String?
+  avatarMediaId String?          @db.Uuid
+  isE2ee        Boolean          @default(false)
+  /// For DIRECT: deterministic "minUserId:maxUserId" to prevent duplicates.
+  directKey     String?          @unique
+  communityId   String?          @db.Uuid
+  createdById   String?          @db.Uuid
+  lastMessageAt DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  avatar    MediaAsset?          @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  community Community?           @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy User?                @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  members   ConversationMember[]
+  messages  Message[]
+
+  @@index([communityId])
+  @@map("conversations")
+}
+
+model ConversationMember {
+  conversationId    String     @db.Uuid
+  userId            String     @db.Uuid
+  role              MemberRole @default(MEMBER)
+  /// Message request (DM from someone you don't follow) until accepted.
+  isRequest         Boolean    @default(false)
+  joinedAt          DateTime   @default(now())
+  leftAt            DateTime?
+  /// Read-receipt watermark.
+  lastReadMessageId String?    @db.Uuid
+  lastReadAt        DateTime?
+  mutedUntil        DateTime?
+  isArchived        Boolean    @default(false)
+  isPinned          Boolean    @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, isArchived])
+  @@map("conversation_members")
+}
+
+model Message {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  conversationId  String      @db.Uuid
+  senderId        String?     @db.Uuid
+  /// Client-generated idempotency key (retries over flaky networks).
+  clientMessageId String
+  type            MessageType
+  body            String?
+  mediaId         String?     @db.Uuid
+  replyToId       String?     @db.Uuid
+  forwardedFromId String?     @db.Uuid
+  sharedPostId    String?     @db.Uuid
+  storyId         String?     @db.Uuid
+  sharedTrackId   String?     @db.Uuid
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  editedAt        DateTime?
+  /// "Delete for everyone": content wiped, tombstone kept for ordering.
+  deletedAt       DateTime?
+
+  conversation  Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User?             @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+  media         MediaAsset?       @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  replyTo       Message?          @relation("MessageReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       Message[]         @relation("MessageReply")
+  forwardedFrom Message?          @relation("MessageForward", fields: [forwardedFromId], references: [id], onDelete: SetNull)
+  forwards      Message[]         @relation("MessageForward")
+  sharedPost    Post?             @relation(fields: [sharedPostId], references: [id], onDelete: SetNull)
+  story         Story?            @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  sharedTrack   Track?            @relation(fields: [sharedTrackId], references: [id], onDelete: SetNull)
+  reactions     MessageReaction[]
+  envelopes     MessageEnvelope[]
+  hiddenFor     MessageHidden[]
+
+  @@unique([senderId, clientMessageId])
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@map("messages")
+}
+
+model MessageReaction {
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@map("message_reactions")
+}
+
+/// "Delete for me".
+model MessageHidden {
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@map("message_hidden")
+}
+
+/// Per-device E2EE identity (Signal Protocol). Public material only.
+model E2eeDevice {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  userId                String    @db.Uuid
+  /// Signal device id (1..n per user).
+  deviceId              Int
+  registrationId        Int
+  identityKey           Bytes
+  signedPreKeyId        Int
+  signedPreKey          Bytes
+  signedPreKeySignature Bytes
+  /// Post-quantum (Kyber/ML-KEM) last-resort prekey for PQXDH.
+  pqLastResortKeyId     Int?
+  pqLastResortKey       Bytes?
+  pqLastResortSignature Bytes?
+  createdAt             DateTime  @default(now())
+  revokedAt             DateTime?
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oneTimeKeys E2eeOneTimePreKey[]
+  envelopes   MessageEnvelope[]
+
+  @@unique([userId, deviceId])
+  @@map("e2ee_devices")
+}
+
+model E2eeOneTimePreKey {
+  deviceRef String    @db.Uuid
+  keyId     Int
+  publicKey Bytes
+  isPq      Boolean   @default(false)
+  signature Bytes?
+  /// Handed out exactly once (SELECT … FOR UPDATE SKIP LOCKED), then deleted.
+  claimedAt DateTime?
+
+  device E2eeDevice @relation(fields: [deviceRef], references: [id], onDelete: Cascade)
+
+  @@id([deviceRef, keyId, isPq])
+  @@index([deviceRef, claimedAt])
+  @@map("e2ee_one_time_prekeys")
+}
+
+/// Opaque ciphertext for one recipient device. Deleted after delivery ack.
+model MessageEnvelope {
+  messageId         String    @db.Uuid
+  recipientDeviceId String    @db.Uuid
+  /// Signal message type (PreKeySignalMessage / SignalMessage / SenderKey…).
+  envelopeType      Int
+  ciphertext        Bytes
+  deliveredAt       DateTime?
+
+  message Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  device  E2eeDevice @relation(fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, recipientDeviceId])
+  @@index([recipientDeviceId, deliveredAt])
+  @@map("message_envelopes")
+}
+
+// -----------------------------------------------------------------------------
+// MUSIC (licensed catalogue only — see documentation/architecture/MUSIC_LICENSING.md)
+// -----------------------------------------------------------------------------
+
+model Artist {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  /// Linked VYBORA account when the artist has claimed their profile.
+  userId        String?  @unique @db.Uuid
+  name          String
+  bio           String?
+  imageUrl      String?
+  isVerified    Boolean  @default(false)
+  provider      String?
+  providerRef   String?
+  followerCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tracks    Track[]
+  followers ArtistFollow[]
+
+  @@unique([provider, providerRef])
+  @@map("artists")
+}
+
+model Track {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  artistId         String    @db.Uuid
+  title            String
+  album            String?
+  artworkUrl       String?
+  durationMs       Int
+  isrc             String?
+  isExplicit       Boolean   @default(false)
+  genre            String?
+  /// Licensing source: "vybora_original" (uploaded by rights holder) or a licensed provider id.
+  provider         String
+  providerRef      String?
+  /// Audio for original uploads; licensed providers stream from their CDN.
+  audioMediaId     String?   @db.Uuid
+  /// Licensed usage scope, e.g. { inReels: true, inStories: true, regions: ["IN","US"], clipMaxMs: 60000 }.
+  license          Json
+  licenseExpiresAt DateTime?
+  hasLyrics        Boolean   @default(false)
+  usageCount       Int       @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  artist        Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  audio         MediaAsset?     @relation(fields: [audioMediaId], references: [id], onDelete: SetNull)
+  posts         Post[]
+  stories       Story[]
+  playlistItems PlaylistTrack[]
+  messageShares Message[]
+
+  @@unique([provider, providerRef])
+  @@index([artistId])
+  @@index([isActive, usageCount(sort: Desc)])
+  @@map("tracks")
+}
+
+model ArtistFollow {
+  userId    String   @db.Uuid
+  artistId  String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@id([userId, artistId])
+  @@index([artistId])
+  @@map("artist_follows")
+}
+
+model Playlist {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  ownerId         String             @db.Uuid
+  title           String
+  description     String?
+  coverMediaId    String?            @db.Uuid
+  visibility      PlaylistVisibility @default(PUBLIC)
+  isCollaborative Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  owner         User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cover         MediaAsset?            @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  tracks        PlaylistTrack[]
+  collaborators PlaylistCollaborator[]
+
+  @@index([ownerId])
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  playlistId String   @db.Uuid
+  trackId    String   @db.Uuid
+  addedById  String?  @db.Uuid
+  /// Fractional index string (LexoRank-style) for cheap concurrent reordering.
+  position   String
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track    Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  addedBy  User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@id([playlistId, trackId])
+  @@index([playlistId, position])
+  @@map("playlist_tracks")
+}
+
+model PlaylistCollaborator {
+  playlistId String   @db.Uuid
+  userId     String   @db.Uuid
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, userId])
+  @@map("playlist_collaborators")
+}
+
+// -----------------------------------------------------------------------------
+// COMMUNITIES
+// -----------------------------------------------------------------------------
+
+model Community {
+  id            String              @id @default(uuid(7)) @db.Uuid
+  slug          String              @unique
+  name          String
+  description   String?
+  rules         Json?
+  avatarMediaId String?             @db.Uuid
+  coverMediaId  String?             @db.Uuid
+  visibility    CommunityVisibility @default(PUBLIC)
+  ownerId       String              @db.Uuid
+  memberCount   Int                 @default(0)
+  status        ContentStatus       @default(ACTIVE)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  owner     User                @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  avatar    MediaAsset?         @relation("CommunityAvatar", fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  cover     MediaAsset?         @relation("CommunityCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  members   CommunityMember[]
+  posts     Post[]
+  channels  Conversation[]
+  events    CommunityEvent[]
+  interests CommunityInterest[]
+
+  @@index([visibility, memberCount(sort: Desc)])
+  @@map("communities")
+}
+
+model CommunityMember {
+  communityId String                @db.Uuid
+  userId      String                @db.Uuid
+  role        CommunityRole         @default(MEMBER)
+  status      CommunityMemberStatus @default(ACTIVE)
+  joinedAt    DateTime              @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, userId])
+  @@index([userId, status])
+  @@map("community_members")
+}
+
+model CommunityInterest {
+  communityId String @db.Uuid
+  interestId  String @db.Uuid
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  interest  Interest  @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, interestId])
+  @@index([interestId])
+  @@map("community_interests")
+}
+
+model CommunityEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  communityId String    @db.Uuid
+  createdById String    @db.Uuid
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  timezone    String
+  location    String?
+  onlineUrl   String?
+  createdAt   DateTime  @default(now())
+  canceledAt  DateTime?
+
+  community Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  rsvps     CommunityEventRsvp[]
+
+  @@index([communityId, startsAt])
+  @@map("community_events")
+}
+
+model CommunityEventRsvp {
+  eventId   String     @db.Uuid
+  userId    String     @db.Uuid
+  status    RsvpStatus
+  updatedAt DateTime   @updatedAt
+
+  event CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@map("community_event_rsvps")
+}
+
+// -----------------------------------------------------------------------------
+// CREATOR MONETIZATION
+// -----------------------------------------------------------------------------
+// Money truth = provider webhooks → Payment.status → LedgerEntry (double entry).
+// The mobile client never marks anything paid. Balances are SUM(ledger) per
+// account; payouts debit CREATOR_AVAILABLE.
+// -----------------------------------------------------------------------------
+
+model CreatorProfile {
+  userId               String           @id @db.Uuid
+  status               CreatorStatus    @default(APPLIED)
+  kycStatus            KycStatus        @default(NOT_STARTED)
+  payoutProvider       PaymentProvider?
+  /// Stripe Connect account id (acct_…) or Razorpay Route linked account id.
+  payoutAccountId      String?          @unique
+  country              String           @db.Char(2)
+  defaultCurrency      String           @db.Char(3)
+  subscriptionsEnabled Boolean          @default(false)
+  tipsEnabled          Boolean          @default(true)
+  giftsEnabled         Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tiers       SubscriptionTier[]
+  subscribers CreatorSubscription[]
+  payouts     Payout[]
+
+  @@map("creator_profiles")
+}
+
+model SubscriptionTier {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  creatorId       String          @db.Uuid
+  name            String
+  description     String?
+  benefits        String[]        @default([])
+  priceMinor      Int
+  currency        String          @db.Char(3)
+  interval        BillingInterval @default(MONTH)
+  providerPriceId String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+
+  creator       CreatorProfile        @relation(fields: [creatorId], references: [userId], onDelete: Cascade)
+  subscriptions CreatorSubscription[]
+
+  @@index([creatorId, isActive])
+  @@map("subscription_tiers")
+}
+
+model CreatorSubscription {
+  id                     String             @id @default(uuid(7)) @db.Uuid
+  subscriberId           String             @db.Uuid
+  creatorId              String             @db.Uuid
+  tierId                 String             @db.Uuid
+  status                 SubscriptionStatus @default(INCOMPLETE)
+  provider               PaymentProvider
+  providerSubscriptionId String             @unique
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  subscriber User             @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  creator    CreatorProfile   @relation(fields: [creatorId], references: [userId], onDelete: Cascade)
+  tier       SubscriptionTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  payments   Payment[]
+
+  @@index([subscriberId, creatorId, status])
+  @@index([creatorId, status])
+  @@map("creator_subscriptions")
+}
+
+model Payment {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  payerId           String?         @db.Uuid
+  recipientId       String?         @db.Uuid
+  kind              PaymentKind
+  provider          PaymentProvider
+  /// PaymentIntent id (pi_…) / Razorpay order or payment id.
+  providerPaymentId String          @unique
+  amountMinor       Int
+  currency          String          @db.Char(3)
+  platformFeeMinor  Int             @default(0)
+  providerFeeMinor  Int?
+  status            PaymentStatus   @default(PENDING)
+  subscriptionId    String?         @db.Uuid
+  /// Client-supplied idempotency key for the create call.
+  idempotencyKey    String          @unique
+  metadata          Json?
+  succeededAt       DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  payer        User?                @relation("Payer", fields: [payerId], references: [id], onDelete: SetNull)
+  recipient    User?                @relation("PaymentRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  subscription CreatorSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  ledger       LedgerEntry[]
+  gift         GiftTransaction?
+  unlock       ContentUnlock?
+  promotion    Promotion?
+
+  @@index([payerId, createdAt])
+  @@index([recipientId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Every provider webhook is stored first, verified, then processed exactly once.
+model WebhookEvent {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  provider    PaymentProvider
+  eventId     String
+  type        String
+  payload     Json
+  signatureOk Boolean
+  receivedAt  DateTime        @default(now())
+  processedAt DateTime?
+  attempts    Int             @default(0)
+  error       String?
+
+  @@unique([provider, eventId])
+  @@index([processedAt])
+  @@map("webhook_events")
+}
+
+model LedgerAccount {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  type        LedgerAccountType
+  /// Null for platform-level accounts.
+  ownerUserId String?           @db.Uuid
+  currency    String            @db.Char(3)
+  createdAt   DateTime          @default(now())
+
+  entries LedgerEntry[]
+
+  @@unique([type, ownerUserId, currency])
+  @@map("ledger_accounts")
+}
+
+/// Immutable. Each transactionId's DEBITs and CREDITs must sum equal (enforced in service; a deferred-constraint DB trigger is added in Phase 15).
+model LedgerEntry {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  transactionId String          @db.Uuid
+  accountId     String          @db.Uuid
+  direction     LedgerDirection
+  amountMinor   Int
+  currency      String          @db.Char(3)
+  paymentId     String?         @db.Uuid
+  payoutId      String?         @db.Uuid
+  description   String
+  /// Funds in CREATOR_PENDING move to AVAILABLE after this (refund window).
+  availableAt   DateTime?
+  createdAt     DateTime        @default(now())
+
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  payment Payment?      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  payout  Payout?       @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+
+  @@index([accountId, createdAt])
+  @@index([transactionId])
+  @@map("ledger_entries")
+}
+
+model VirtualGift {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  name         String
+  iconUrl      String
+  animationUrl String?
+  priceMinor   Int
+  currency     String  @db.Char(3)
+  isActive     Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  transactions GiftTransaction[]
+
+  @@map("virtual_gifts")
+}
+
+model GiftTransaction {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  giftId      String   @db.Uuid
+  senderId    String   @db.Uuid
+  recipientId String   @db.Uuid
+  paymentId   String   @unique @db.Uuid
+  postId      String?  @db.Uuid
+  message     String?
+  createdAt   DateTime @default(now())
+
+  gift      VirtualGift @relation(fields: [giftId], references: [id], onDelete: Restrict)
+  sender    User        @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User        @relation("GiftRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  payment   Payment     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  post      Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, createdAt])
+  @@map("gift_transactions")
+}
+
+model ContentUnlock {
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+  paymentId String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@id([userId, postId])
+  @@map("content_unlocks")
+}
+
+model Payout {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  creatorId        String          @db.Uuid
+  amountMinor      Int
+  currency         String          @db.Char(3)
+  status           PayoutStatus    @default(REQUESTED)
+  provider         PaymentProvider
+  providerPayoutId String?         @unique
+  reviewedById     String?         @db.Uuid
+  reviewNote       String?
+  failureReason    String?
+  requestedAt      DateTime        @default(now())
+  completedAt      DateTime?
+
+  creator    CreatorProfile @relation(fields: [creatorId], references: [userId], onDelete: Restrict)
+  reviewedBy User?          @relation("PayoutReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  ledger     LedgerEntry[]
+
+  @@index([creatorId, requestedAt])
+  @@index([status])
+  @@map("payouts")
+}
+
+model Promotion {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  postId      String          @db.Uuid
+  buyerId     String          @db.Uuid
+  paymentId   String?         @unique @db.Uuid
+  budgetMinor Int
+  spentMinor  Int             @default(0)
+  currency    String          @db.Char(3)
+  /// { countries[], ageMin, ageMax, interests[] } — no sensitive categories.
+  targeting   Json
+  status      PromotionStatus @default(DRAFT)
+  impressions Int             @default(0)
+  clicks      Int             @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  buyer   User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([status, startsAt])
+  @@map("promotions")
+}
+
+model Brand {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  ownerId    String   @db.Uuid
+  name       String
+  website    String?
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  owner    User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  listings CollabListing[]
+
+  @@map("brands")
+}
+
+model CollabListing {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  brandId        String       @db.Uuid
+  title          String
+  description    String
+  budgetMinMinor Int?
+  budgetMaxMinor Int?
+  currency       String?      @db.Char(3)
+  requirements   Json?
+  status         CollabStatus @default(OPEN)
+  closesAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  applications CollabApplication[]
+
+  @@index([status, createdAt])
+  @@map("collab_listings")
+}
+
+model CollabApplication {
+  id        String            @id @default(uuid(7)) @db.Uuid
+  listingId String            @db.Uuid
+  creatorId String            @db.Uuid
+  pitch     String
+  status    ApplicationStatus @default(SUBMITTED)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  listing CollabListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  creator User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, creatorId])
+  @@map("collab_applications")
+}
+
+// -----------------------------------------------------------------------------
+// NOTIFICATIONS
+// -----------------------------------------------------------------------------
+
+model Notification {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  recipientId String           @db.Uuid
+  actorId     String?          @db.Uuid
+  type        NotificationType
+  /// Polymorphic pointer, e.g. ("post", id). Resolved & permission-checked on read.
+  entityType  String?
+  entityId    String?          @db.Uuid
+  /// Aggregation key: "LIKE:post:<id>" collapses "Ana and 23 others liked…".
+  groupKey    String?
+  data        Json?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, readAt])
+  @@index([recipientId, groupKey])
+  @@map("notifications")
+}
+
+// -----------------------------------------------------------------------------
+// TRUST, SAFETY & ADMIN
+// -----------------------------------------------------------------------------
+
+model Report {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  reporterId   String?          @db.Uuid
+  targetType   ReportTargetType
+  targetId     String           @db.Uuid
+  /// Owner of the reported content (for repeat-offender queries).
+  targetUserId String?          @db.Uuid
+  reason       ReportReason
+  details      String?
+  status       ReportStatus     @default(OPEN)
+  /// Higher = reviewed sooner (CHILD_SAFETY/SELF_HARM are always max).
+  priority     Int              @default(0)
+  assignedToId String?          @db.Uuid
+  resolution   String?
+  createdAt    DateTime         @default(now())
+  resolvedAt   DateTime?
+
+  reporter   User?              @relation("Reporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  assignedTo User?              @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  actions    ModerationAction[]
+
+  @@index([status, priority(sort: Desc), createdAt])
+  @@index([targetType, targetId])
+  @@index([targetUserId])
+  @@map("reports")
+}
+
+model ModerationAction {
+  id           String               @id @default(uuid(7)) @db.Uuid
+  moderatorId  String?              @db.Uuid
+  action       ModerationActionType
+  targetType   ReportTargetType
+  targetId     String               @db.Uuid
+  targetUserId String?              @db.Uuid
+  reportId     String?              @db.Uuid
+  reason       String
+  /// Automated actions (spam classifier etc.) have moderatorId = null.
+  isAutomated  Boolean              @default(false)
+  expiresAt    DateTime?
+  createdAt    DateTime             @default(now())
+
+  moderator  User?   @relation("Moderator", fields: [moderatorId], references: [id], onDelete: SetNull)
+  targetUser User?   @relation("ModeratedUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  report     Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, createdAt])
+  @@index([targetType, targetId])
+  @@map("moderation_actions")
+}
+
+model VerificationRequest {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  userId       String       @db.Uuid
+  category     String
+  /// Private-bucket object keys of supporting documents; purged after review.
+  documentKeys String[]     @default([])
+  links        String[]     @default([])
+  status       ReviewStatus @default(PENDING)
+  reviewedById String?      @db.Uuid
+  reviewNote   String?
+  createdAt    DateTime     @default(now())
+  reviewedAt   DateTime?
+
+  user       User  @relation("VerificationApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("VerificationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("verification_requests")
+}
+
+/// Append-only. Written for every privileged action (admin, payments, auth events).
+model AuditLog {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  actorType  ActorType
+  actorId    String?   @db.Uuid
+  action     String
+  entityType String?
+  entityId   String?
+  ipHash     String?
+  requestId  String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+// -----------------------------------------------------------------------------
+// AI STUDIO
+// -----------------------------------------------------------------------------
+
+model AiJob {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @db.Uuid
+  kind          AiJobKind
+  status        JobStatus @default(QUEUED)
+  /// Provider adapter used (e.g. "openai") — swappable behind AiProvider interface.
+  provider      String
+  model         String?
+  input         Json
+  output        Json?
+  inputMediaId  String?   @db.Uuid
+  outputMediaId String?   @db.Uuid
+  inputTokens   Int?
+  outputTokens  Int?
+  /// Cost in micro-USD for quota & margin tracking.
+  costMicros    Int?
+  error         String?
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputMedia  MediaAsset? @relation("AiInputMedia", fields: [inputMediaId], references: [id], onDelete: SetNull)
+  outputMedia MediaAsset? @relation("AiOutputMedia", fields: [outputMediaId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("ai_jobs")
+}
+
+model ContentCalendarEntry {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  userId      String              @db.Uuid
+  title       String
+  notes       String?
+  format      PostType?
+  plannedFor  DateTime
+  status      CalendarEntryStatus @default(IDEA)
+  postId      String?             @db.Uuid
+  aiGenerated Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([userId, plannedFor])
+  @@map("content_calendar_entries")
+}
+
+// -----------------------------------------------------------------------------
+// PRIVACY / GDPR
+// -----------------------------------------------------------------------------
+
+model DataExportRequest {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @db.Uuid
+  status      JobStatus @default(QUEUED)
+  /// Private-bucket key of the generated ZIP; served via short-lived signed URL.
+  storageKey  String?
+  expiresAt   DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("data_export_requests")
+}

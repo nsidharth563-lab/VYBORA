@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.next/
+.turbo/
+.expo/
+out/
+coverage/
+apps/api/src/generated/
+*.tsbuildinfo
+
+# native (Expo prebuild output — regenerate with `expo prebuild`)
+apps/mobile/android/
+apps/mobile/ios/
+
+# env & secrets — only .env.example files are committed
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# logs / OS / editor
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
