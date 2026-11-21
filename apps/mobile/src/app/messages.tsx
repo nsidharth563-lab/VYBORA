@@ -1,0 +1,16 @@
+import { MessageCircle } from 'lucide-react-native';
+import { EmptyState } from '@/components/empty-state';
+import { Screen } from '@/components/screen';
+
+export default function MessagesScreen() {
+  return (
+    <Screen edges={[]}>
+      <EmptyState
+        icon={MessageCircle}
+        title="Your messages"
+        message="Chats, groups and voice notes, delivered in real time."
+        phase="Arrives in Phase 8 · Messaging"
+      />
+    </Screen>
+  );
+}

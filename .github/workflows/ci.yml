@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vybora
+          POSTGRES_PASSWORD: vybora
+          POSTGRES_DB: vybora
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vybora" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://vybora:vybora@localhost:5432/vybora?schema=public
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply database migrations
+        run: pnpm --filter @vybora/api exec prisma migrate deploy
+      - name: Check schema has no drift from migrations
+        run: pnpm --filter @vybora/api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+      - run: pnpm turbo run lint typecheck
+      - run: pnpm turbo run test
+      - name: Schema smoke test
+        run: pnpm --filter @vybora/api test:db
+      - name: Build API
+        run: pnpm --filter @vybora/api build
+      - name: Bundle mobile app (web)
+        working-directory: apps/mobile
+        run: npx expo export --platform web

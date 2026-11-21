@@ -1,6 +1,6 @@
 # VYBORA — Requirements Analysis
 
-> Status: **proposal, awaiting approval** · Last updated: 2026-11-21
+> Status: **approved 2026-11-21** · decisions recorded in §7
 
 ## 1. What we are building
 
@@ -107,3 +107,13 @@ validation and authorization; unit + integration tests pass; mobile screen
 wired to the real API (no dead buttons); error/empty/loading states exist;
 documentation updated. Anything short of that is reported as partial, with
 what's missing.
+
+## 7. Decision record (approved 2026-11-21)
+
+| # | Decision | Consequence for the build |
+|---|---|---|
+| D1 | **Mobile digital goods via App Store / Play billing** ("coins", subscriptions); Stripe + Razorpay for web purchases and creator payouts (Stripe Connect / RazorpayX) | Phase 13 adds an `IAP` payment provider (receipt/server-notification verification) alongside Stripe & Razorpay; all three feed the same ledger |
+| D2 | **Messaging ships with TLS + encryption at rest first; E2EE for 1:1 DMs follows as Phase 8b** via a native libsignal module, enabled by default only after an external crypto review | Phase 8 uses `isE2ee = false`; schema already supports envelopes |
+| D3 | **Music launches with VYBORA Originals + a royalty-free library**; commercial catalogue only under contract | Phase 10 builds two providers + adapter slot |
+| D4 | **AWS hosting** (ECS Fargate, RDS, ElastiCache, S3, CloudFront, SES) | Terraform in Phase 16 |
+| D5 | Postgres full-text + `pg_trgm` search at launch | Phase 5/12 migrations |

@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "VYBORA",
+    "slug": "vybora",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "vybora",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.vybora.app",
+      "supportsTablet": true,
+      "config": { "usesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "com.vybora.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#6D28D9",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "VYBORA",
+      "themeColor": "#8B5CF6"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FBFBFD",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96,
+          "dark": { "backgroundColor": "#0A0A0F" }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # VYBORA — Development Roadmap
 
-> Status: **proposal, awaiting approval**. Durations assume one full-time senior
+> Status: **approved 2026-11-21**. Durations assume one full-time senior
 > engineer working with Claude Code; they are planning estimates, not promises.
 
 Each phase ends with: tests passing, docs updated, a demoable build, and an
@@ -9,7 +9,7 @@ honest status report (what's done, what's partial, what's next).
 | Phase | Name | Key deliverables | Exit criteria | Est. |
 |---|---|---|---|---|
 | **0** | **Foundation** ✅ *(this PR)* | Requirements analysis, architecture, DB schema + initial migration, monorepo, tokens, local infra | Schema validates & migrates; smoke test & unit tests pass | done |
-| 1 | App skeletons & tooling | Expo app (Router, tabs, theming, fonts), NestJS app (config, health, Prisma, Redis, logging, Sentry, error envelope), ESLint, CI (GitHub Actions: lint/typecheck/test + Postgres service) | `pnpm dev` runs API + app; CI green | 1 wk |
+| **1** | **App skeletons & tooling** ✅ | Expo app (Router, tabs, theming, fonts), NestJS app (config, health, Prisma, Redis, logging, Sentry, error envelope), ESLint, CI (GitHub Actions: lint/typecheck/test + Postgres service) | `pnpm dev` runs API + app; CI green | done |
 | 2 | Design system | `@vybora/ui` RN components: Button, Input, Avatar (+story ring), Card, Sheet, Tabs, Toast, Skeleton, EmptyState, Icon set; light/dark; brand mark & splash | Storybook-style gallery screen; a11y labels; both themes | 1 wk |
 | 3 | Authentication | Email/phone signup, OTP (email + SMS adapters), verify, login, refresh rotation + reuse detection, Google & Apple, forgot/reset, sessions list & revoke, logout, account deletion (grace period), rate limits | Integration tests for every flow incl. token reuse attack; screens wired | 2 wk |
 | 4 | Profiles & graph | Profile view/edit, avatar/cover upload (presigned S3 + image worker), follow/unfollow, private accounts & requests, block/restrict/mute, close friends, VisibilityPolicy | Policy test matrix (block × private × follow state) | 1.5 wk |

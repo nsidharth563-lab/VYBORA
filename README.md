@@ -6,12 +6,19 @@ A next-generation social platform: social feed, short video (Reels), stories,
 music, communities, real-time messaging, an AI creation studio and a creator
 economy — for Android, iOS and (later) Web.
 
-> **Project status — Phase 0 (Foundation) complete; awaiting approval to start Phase 1.**
-> What exists today: requirements analysis, architecture, roadmap, the full
-> PostgreSQL schema with an applied & tested initial migration, the monorepo
-> skeleton, shared packages (types, validation helpers, design tokens) and
-> local infrastructure. **No mobile, admin or API application code yet** —
-> those are scaffolded starting in Phase 1. See the [roadmap](documentation/architecture/ROADMAP.md).
+> **Project status — Phase 1 (App skeletons & tooling) complete.**
+> Running today: the NestJS API (health/readiness, config validation, error envelope,
+> security headers, structured logs, Sentry hook) and the Expo mobile app (five-tab
+> navigation, light/dark theming, brand identity, live server status), with lint,
+> typecheck and tests wired through Turborepo and GitHub Actions CI.
+> Product features start in Phase 2 (design system) and Phase 3 (authentication).
+> See the [roadmap](documentation/architecture/ROADMAP.md).
+
+<p align="center">
+  <img src="documentation/screenshots/home-light.png" width="200" alt="Home (light)" />
+  <img src="documentation/screenshots/create-dark.png" width="200" alt="Create (dark)" />
+  <img src="documentation/screenshots/settings-dark.png" width="200" alt="Settings with live server status (dark)" />
+</p>
 
 ## Documentation
 
@@ -32,8 +39,8 @@ economy — for Android, iOS and (later) Web.
 ```
 vybora/
 ├── apps/
-│   ├── api/        NestJS API + workers   — Prisma schema & migrations (ready), app code from Phase 1
-│   ├── mobile/     Expo React Native app  — reserved, scaffolded in Phase 1
+│   ├── api/        NestJS 12 API (Fastify) — Prisma schema, migrations, health, config, errors
+│   ├── mobile/     Expo SDK 58 app       — Expo Router tabs, theming, API client
 │   └── admin/      Next.js admin          — reserved, scaffolded in Phase 14
 ├── packages/
 │   ├── types/      API contracts shared by all apps
@@ -53,7 +60,7 @@ Tooling: **pnpm workspaces + Turborepo**, TypeScript 5.9, Node ≥ 22.12.
 ### Prerequisites
 - Node.js 22 LTS (`nvm use`), pnpm 10 (`corepack enable`)
 - Docker Desktop (or any Docker engine with Compose v2)
-- From Phase 1: Xcode (iOS simulator, macOS only) and/or Android Studio, plus the Expo dev client
+- For the mobile app: Expo Go on a phone, or Xcode (iOS simulator, macOS) / Android Studio (emulator)
 
 ### 1. Install
 ```bash
@@ -81,13 +88,24 @@ pnpm db:migrate        # applies prisma/migrations
 pnpm db:generate       # typed Prisma client → apps/api/src/generated (git-ignored)
 ```
 
-### 4. Verify
+### 4. Run the API
 ```bash
-pnpm build                              # builds packages/*
-pnpm test                               # unit tests (packages/shared)
-pnpm --filter @vybora/api test:db       # schema smoke test against your Postgres
-pnpm --filter @vybora/api db:studio     # browse the database
+pnpm --filter @vybora/api dev       # http://localhost:4000/v1/health/ready
 ```
+
+### 5. Run the mobile app
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+pnpm --filter @vybora/mobile start  # then i (iOS) · a (Android) · w (web) · or scan the QR with Expo Go
+```
+Open **Profile → Settings** to see live server status from the API.
+
+### 6. Verify everything
+```bash
+pnpm lint && pnpm typecheck && pnpm test   # all workspaces (API e2e needs Postgres + Redis running)
+pnpm --filter @vybora/api test:db         # schema smoke test
+```
+The same checks run in GitHub Actions on every push (`.github/workflows/ci.yml`).
 
 ### Stop
 ```bash

@@ -1,6 +1,6 @@
 # VYBORA — System Architecture
 
-> Status: **proposal, awaiting approval**
+> Status: **approved 2026-11-21**
 
 ## 1. High-level view
 
@@ -48,7 +48,7 @@ flowchart LR
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Backend shape | **Modular monolith** (NestJS) with two entrypoints: `main.ts` (HTTP+WS) and `worker.ts` (queues) | One deployable, clear module boundaries, independent scaling of the hot paths (API vs media workers). Modules communicate via services/events, never via each other's tables — so a module can be extracted later. |
+| Backend shape | **Modular monolith** (NestJS 12, ESM, Fastify adapter) with two entrypoints: `main.ts` (HTTP+WS) and `worker.ts` (queues) | One deployable, clear module boundaries, independent scaling of the hot paths (API vs media workers). Modules communicate via services/events, never via each other's tables — so a module can be extracted later. |
 | API style | REST `/v1` + WebSocket for realtime | Simple to cache, version and secure; WS only for messaging, typing, presence, live counters. |
 | IDs | UUIDv7 | Time-ordered (B-tree friendly, sortable), not enumerable. |
 | Pagination | Keyset cursors everywhere | Stable under inserts; O(log n) per page. |
@@ -62,7 +62,7 @@ flowchart LR
 | AI | `AiProvider` interface (OpenAI adapter first, `mock` adapter for dev/tests) | Provider-agnostic; keys server-side only; per-user quotas. |
 | Payments | `PaymentProvider` interface (Stripe, Razorpay); **webhook is the only source of truth** | Client success callbacks are UX only. Double-entry ledger. |
 | Mobile state | TanStack Query (server state) + Zustand (client state: session, player, composer) | Clear split; query cache persisted to MMKV for instant startup. |
-| Styling | NativeWind v4 with tokens from `@vybora/ui` | Shared tokens with admin (Tailwind). |
+| Styling | Typed theme system (`useAppTheme`) on tokens from `@vybora/ui`; StyleSheet-based components | NativeWind 4 has open compatibility issues with Reanimated 4 (Expo SDK 58). The brief allows "NativeWind *or* a consistent design system"; tokens stay shared with admin (Tailwind). Revisit NativeWind 5 when stable. |
 
 ## 3. Module map (API)
 
