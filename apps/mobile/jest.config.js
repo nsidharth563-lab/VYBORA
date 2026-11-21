@@ -9,5 +9,7 @@ module.exports = {
     // Jest picks the 'react-native' export condition (.mjs); use the CJS build in tests.
     '^lucide-react-native$': '<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js', '^@/assets/(.*)$': '<rootDir>/assets/$1', '^@/(.*)$': '<rootDir>/src/$1' },
   setupFiles: ['./jest.setup.js'],
+  // Router tests render the full app; the first one pays expo-router's cold transform cost on CI.
+  testTimeout: 30_000,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 };

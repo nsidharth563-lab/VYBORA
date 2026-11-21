@@ -51,7 +51,7 @@ describe('app navigation', () => {
     await renderRouter(appDir, { initialUrl: '/settings' });
     await press(await screen.findByTestId('segment-dark'));
     expect(usePreferences.getState().theme).toBe('dark');
-    expect(screen.getByTestId('segment-dark').props.accessibilityState).toMatchObject({ checked: true });
+    await waitFor(() => expect(screen.getByTestId('segment-dark').props.accessibilityState).toMatchObject({ checked: true }));
     await waitFor(() => expect(screen.getByTestId('server-status')).toHaveTextContent('All systems operational'));
     expect(screen.getByText('up · 3 ms')).toBeTruthy();
   });
