@@ -1,15 +1,11 @@
-import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { usePreferences } from '@/stores/preferences';
 
 // Use the real route files from src/app.
 const appDir = './src/app';
 
-/** Press and let navigation/state updates settle before asserting. */
-const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
-  await act(async () => {
-    fireEvent.press(el);
-  });
-};
+/** RNTL 14 events are async: awaiting them flushes resulting updates inside act(). */
+const press = (el: Parameters<typeof fireEvent.press>[0]) => fireEvent.press(el);
 
 let online = true;
 const READY = { status: 'ok', checks: { database: { status: 'up', latencyMs: 3 }, redis: { status: 'up', latencyMs: 1 } } };
@@ -68,5 +64,32 @@ describe('app navigation', () => {
   it('unknown routes show the not-found screen', async () => {
     await renderRouter(appDir, { initialUrl: '/nope/nothing' });
     expect(await screen.findByText("This page doesn't exist")).toBeTruthy();
+  });
+});
+
+describe('design system gallery', () => {
+  it('opens from Settings and its components work', async () => {
+    await renderRouter(appDir, { initialUrl: '/settings' });
+    await press(await screen.findByTestId('open-design-system'));
+    expect(await screen.findByTestId('design-system')).toBeTruthy();
+    expect(screen).toHavePathname('/design-system');
+
+    // Live validation from @vybora/shared
+    await fireEvent.changeText(screen.getByTestId('field-username'), 'ab');
+    expect(screen.getByTestId('field-username-error')).toHaveTextContent('At least 3 characters.');
+
+    // Tabs
+    await press(screen.getByRole('tab', { name: 'Reels, 42' }));
+    expect(screen.getByTestId('tab-selection')).toHaveTextContent('Showing: reels');
+
+    // Toast
+    await press(screen.getByTestId('btn-toast-info'));
+    expect(screen.getByRole('alert', { name: 'Heads up — this is a toast.' })).toBeTruthy();
+
+    // Sheet open + close
+    await press(screen.getByTestId('btn-sheet'));
+    expect(await screen.findByRole('header', { name: 'Delete account?' })).toBeTruthy();
+    await press(screen.getByTestId('sheet-cancel'));
+    await waitFor(() => expect(screen.queryByRole('header', { name: 'Delete account?' })).toBeNull());
   });
 });

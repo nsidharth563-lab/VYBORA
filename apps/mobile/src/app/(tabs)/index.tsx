@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { Bell, MessageCircle, Newspaper } from 'lucide-react-native';
-import { Wordmark } from '@/components/brand';
-import { EmptyState } from '@/components/empty-state';
-import { IconButton } from '@/components/icon-button';
-import { Screen } from '@/components/screen';
+import { Wordmark } from '@/ui/brand';
+import { EmptyState } from '@/ui/empty-state';
+import { IconButton } from '@/ui/icon-button';
+import { Screen } from '@/ui/screen';
 import { TopBar } from '@/components/top-bar';
 
 export default function HomeScreen() {

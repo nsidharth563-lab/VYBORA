@@ -6,18 +6,20 @@ A next-generation social platform: social feed, short video (Reels), stories,
 music, communities, real-time messaging, an AI creation studio and a creator
 economy — for Android, iOS and (later) Web.
 
-> **Project status — Phase 1 (App skeletons & tooling) complete.**
+> **Project status — Phase 2 (Design system) complete.**
 > Running today: the NestJS API (health/readiness, config validation, error envelope,
-> security headers, structured logs, Sentry hook) and the Expo mobile app (five-tab
-> navigation, light/dark theming, brand identity, live server status), with lint,
-> typecheck and tests wired through Turborepo and GitHub Actions CI.
-> Product features start in Phase 2 (design system) and Phase 3 (authentication).
-> See the [roadmap](documentation/architecture/ROADMAP.md).
+> security headers, structured logs) and the Expo app (five-tab navigation, light/dark
+> theming, brand identity, live server status) plus an accessible component library with
+> a live gallery (Settings → Design system). Lint, typecheck and tests run in CI.
+> Next: Phase 3 (authentication). See the [roadmap](documentation/architecture/ROADMAP.md).
 
 <p align="center">
   <img src="documentation/screenshots/home-light.png" width="200" alt="Home (light)" />
   <img src="documentation/screenshots/create-dark.png" width="200" alt="Create (dark)" />
   <img src="documentation/screenshots/settings-dark.png" width="200" alt="Settings with live server status (dark)" />
+</p>
+<p align="center">
+  <img src="documentation/screenshots/design-system-light.png" width="640" alt="Design system gallery (light)" />
 </p>
 
 ## Documentation
@@ -30,6 +32,7 @@ economy — for Android, iOS and (later) Web.
 | [Third-party services](documentation/architecture/THIRD_PARTY_SERVICES.md) | Accounts to create, libraries, local substitutes |
 | [Database schema](documentation/database/SCHEMA.md) | ERDs, conventions, indexes, planned migrations |
 | [Feed ranking](documentation/architecture/RANKING.md) · [Music licensing](documentation/architecture/MUSIC_LICENSING.md) | Domain designs |
+| [Design system](documentation/design/DESIGN_SYSTEM.md) | Tokens, accessibility rules, components |
 | [API conventions](documentation/api/CONVENTIONS.md) | REST/WS conventions, errors, pagination |
 | [Security](documentation/security/SECURITY.md) | Threat model, E2EE plan, GDPR |
 | [Deployment](infrastructure/deployment/README.md) | AWS target architecture |
@@ -45,7 +48,7 @@ vybora/
 ├── packages/
 │   ├── types/      API contracts shared by all apps
 │   ├── shared/     validation (username, password, hashtags, mentions), cursor pagination, constants
-│   ├── ui/         design tokens: palette, light/dark themes, gradients, type, spacing, motion
+│   ├── ui/         design tokens + WCAG contrast checks (components: apps/mobile/src/ui)
 │   └── config/     shared tsconfig
 ├── infrastructure/
 │   ├── docker/     docker-compose: Postgres, Redis, MinIO (S3), Mailpit

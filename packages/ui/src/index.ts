@@ -6,7 +6,7 @@
  * for brand moments (logo, Create button, primary CTA, active story rings);
  * everyday UI stays neutral so content is the hero.
  *
- * Full component library is built in Phase 2 (Design System).
+ * Contrast of every text/background pair is enforced by src/contrast.test.ts.
  */
 
 export const palette = {
@@ -23,6 +23,7 @@ export const palette = {
     100: '#EADFFF',
     300: '#C4A5FF',
     500: '#8B5CF6',
+    600: '#7C3AED',
     700: '#6D28D9',
     900: '#3B0A73',
   },
@@ -32,6 +33,7 @@ export const palette = {
     300: '#FFA48A',
     500: '#FF6B4A',
     700: '#D9431F',
+    800: '#C2410C',
     900: '#7A1F0A',
   },
   mint: { 500: '#10B981', 700: '#047857' },
@@ -58,6 +60,12 @@ export const palette = {
 export const gradients = {
   /** Signature brand gradient: connect → create → discover. */
   signal: ['#4F46E5', '#8B5CF6', '#FF6B4A'] as const,
+  /**
+   * Same idea, darkened so white labels/icons stay WCAG AA (>= 4.5:1) at every stop.
+   * Use for anything carrying text or icons (buttons, Create tab); keep `signal`
+   * for the logo and purely decorative surfaces.
+   */
+  signalStrong: ['#4F46E5', '#7C3AED', '#C2410C'] as const,
   storyRing: ['#8B5CF6', '#FF6B4A'] as const,
   closeFriendsRing: ['#10B981', '#34D399'] as const,
   aiStudio: ['#6D28D9', '#4F46E5', '#06B6D4'] as const,
@@ -67,16 +75,27 @@ export interface ThemeColors {
   background: string;
   surface: string;
   surfaceRaised: string;
+  /** Neutral fill for inputs, skeletons, chips. */
+  surfaceMuted: string;
+  /** Hairline dividers (decorative, no contrast requirement). */
   border: string;
+  /** Boundaries of interactive controls — WCAG 1.4.11 requires >= 3:1. */
+  borderStrong: string;
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
   primary: string;
   primaryText: string;
+  /** Tinted background for selected chips, badges, highlights. */
+  primarySoft: string;
   accent: string;
   success: string;
   warning: string;
   danger: string;
+  /** Foreground on solid status fills (badges, destructive buttons). */
+  onSuccess: string;
+  onWarning: string;
+  onDanger: string;
   overlay: string;
 }
 
@@ -84,16 +103,22 @@ export const lightTheme: ThemeColors = {
   background: palette.neutral[25],
   surface: palette.neutral[0],
   surfaceRaised: palette.neutral[0],
+  surfaceMuted: palette.neutral[50],
   border: palette.neutral[100],
+  borderStrong: '#85859A',
   textPrimary: palette.neutral[950],
   textSecondary: palette.neutral[600],
-  textMuted: palette.neutral[400],
-  primary: palette.violet[500],
+  textMuted: palette.neutral[500],
+  primary: palette.violet[700],
   primaryText: palette.neutral[0],
-  accent: palette.coral[500],
+  primarySoft: palette.violet[50],
+  accent: palette.coral[800],
   success: palette.mint[700],
   warning: palette.amber[700],
   danger: palette.red[700],
+  onSuccess: palette.neutral[0],
+  onWarning: palette.neutral[0],
+  onDanger: palette.neutral[0],
   overlay: 'rgba(10,10,15,0.5)',
 };
 
@@ -101,16 +126,22 @@ export const darkTheme: ThemeColors = {
   background: palette.neutral[950],
   surface: palette.neutral[900],
   surfaceRaised: palette.neutral[850],
+  surfaceMuted: palette.neutral[800],
   border: palette.neutral[800],
+  borderStrong: '#6E6E84',
   textPrimary: palette.neutral[50],
   textSecondary: palette.neutral[300],
   textMuted: palette.neutral[500],
   primary: palette.violet[300],
   primaryText: palette.neutral[950],
+  primarySoft: '#2A1F45',
   accent: palette.coral[300],
   success: palette.mint[500],
   warning: palette.amber[500],
   danger: palette.red[500],
+  onSuccess: palette.neutral[950],
+  onWarning: palette.neutral[950],
+  onDanger: palette.neutral[950],
   overlay: 'rgba(0,0,0,0.6)',
 };
 
@@ -147,6 +178,8 @@ export const motion = {
     gentle: { damping: 20, stiffness: 140, mass: 1 },
   },
 } as const;
+
+export * from './contrast.js';
 
 export const tokens = {
   palette,

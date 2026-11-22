@@ -1,6 +1,6 @@
 import { Compass } from 'lucide-react-native';
-import { EmptyState } from '@/components/empty-state';
-import { Screen } from '@/components/screen';
+import { EmptyState } from '@/ui/empty-state';
+import { Screen } from '@/ui/screen';
 import { TopBar } from '@/components/top-bar';
 
 export default function ExploreScreen() {

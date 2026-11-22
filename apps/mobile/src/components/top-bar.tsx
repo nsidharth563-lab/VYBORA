@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
-import { Text } from './text';
+import { Text } from '@/ui/text';
 
 /** In-screen header used by tab screens (tabs hide the native header). */
 export function TopBar({ title, left, right }: { title?: string; left?: ReactNode; right?: ReactNode }) {

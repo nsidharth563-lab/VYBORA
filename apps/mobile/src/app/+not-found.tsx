@@ -1,9 +1,9 @@
 import { Link, Stack } from 'expo-router';
 import { SearchX } from 'lucide-react-native';
 import { View } from 'react-native';
-import { EmptyState } from '@/components/empty-state';
-import { Screen } from '@/components/screen';
-import { Text } from '@/components/text';
+import { EmptyState } from '@/ui/empty-state';
+import { Screen } from '@/ui/screen';
+import { Text } from '@/ui/text';
 
 export default function NotFound() {
   return (

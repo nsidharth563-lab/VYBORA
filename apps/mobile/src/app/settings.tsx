@@ -1,10 +1,12 @@
 import Constants from 'expo-constants';
-import { RefreshCw } from 'lucide-react-native';
+import { Palette, RefreshCw } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { Row, Section } from '@/components/section';
-import { Screen } from '@/components/screen';
-import { Segmented } from '@/components/segmented';
-import { Text } from '@/components/text';
+import { ListItem } from '@/ui';
+import { Screen } from '@/ui/screen';
+import { Segmented } from '@/ui/segmented';
+import { Text } from '@/ui/text';
 import { useApiHealth } from '@/hooks/use-api-health';
 import { ApiRequestError, resolveApiUrl } from '@/lib/api';
 import { usePreferences, type ThemePreference } from '@/stores/preferences';
@@ -78,6 +80,7 @@ export default function SettingsScreen() {
       <Section title="About">
         <Row label="Version" value={Constants.expoConfig?.version ?? '—'} />
         <Row label="API" value={resolveApiUrl()} />
+        <ListItem title="Design system" subtitle="Every VYBORA component, live" icon={Palette} onPress={() => router.push('/design-system')} testID="open-design-system" />
         <Text variant="caption" tone="muted" align="center">
           VYBORA · {TAGLINE}
         </Text>

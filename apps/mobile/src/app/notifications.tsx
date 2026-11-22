@@ -1,6 +1,6 @@
 import { Bell } from 'lucide-react-native';
-import { EmptyState } from '@/components/empty-state';
-import { Screen } from '@/components/screen';
+import { EmptyState } from '@/ui/empty-state';
+import { Screen } from '@/ui/screen';
 
 export default function NotificationsScreen() {
   return (

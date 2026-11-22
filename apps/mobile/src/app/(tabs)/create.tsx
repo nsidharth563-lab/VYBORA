@@ -1,8 +1,8 @@
 import { Camera, Clapperboard, CircleDashed, Sparkles, type LucideProps } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Screen } from '@/components/screen';
-import { Text } from '@/components/text';
+import { Screen } from '@/ui/screen';
+import { Text } from '@/ui/text';
 import { TopBar } from '@/components/top-bar';
 import { useAppTheme } from '@/theme';
 

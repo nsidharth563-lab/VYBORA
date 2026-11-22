@@ -15,7 +15,7 @@ physical device and `10.0.2.2` on the Android emulator (`src/lib/api.ts → reso
 
 | Script | What it does |
 |---|---|
-| `pnpm test` | Jest (jest-expo) — API client, theme, and router-level navigation tests |
+| `pnpm test` | Jest (jest-expo) — API client, theme, design-system components, router-level navigation |
 | `pnpm typecheck` / `pnpm lint` | `tsc --noEmit` / `expo lint` |
 | `pnpm doctor` | `expo-doctor` dependency & config checks |
 | `pnpm export:web` | Static web build into `dist/` |
@@ -28,15 +28,17 @@ src/
   app/                    routes (Expo Router)
     _layout.tsx           fonts, splash, providers (Query, theme), root stack
     (tabs)/               Home · Explore · Create · Reels · Profile (custom tab bar)
-    notifications.tsx  messages.tsx  settings.tsx  +not-found.tsx
-  components/             Text, Screen, TopBar, IconButton, EmptyState, Segmented, Section, Brand, TabBar
+    notifications.tsx  messages.tsx  settings.tsx  design-system.tsx  +not-found.tsx
+  ui/                     design system — import from '@/ui' (see documentation/design/DESIGN_SYSTEM.md)
+  components/             app chrome: TabBar, TopBar, Section
   theme/                  AppThemeProvider + useAppTheme (light/dark/system)
   stores/                 Zustand stores (preferences, persisted with AsyncStorage)
   lib/                    api client (typed errors, timeouts), query client
   hooks/                  data hooks (TanStack Query)
 ```
 
-## Status (Phase 1)
+## Status (Phase 2)
 Working: navigation shell, theming with persisted preference, brand fonts and icons,
-API client + live server status in Settings. Feature screens show honest empty states
+API client + live server status in Settings, and the accessible component library with a
+live gallery (Settings → Design system). Feature screens show honest empty states
 naming the roadmap phase that delivers them — no dead buttons.

@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { bindAppFocus, createQueryClient } from '@/lib/query-client';
 import { AppThemeProvider, useAppTheme } from '@/theme';
+import { ToastProvider } from '@/ui';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +42,7 @@ function NavigationRoot() {
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="messages" options={{ title: 'Messages' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="design-system" options={{ title: 'Design system' }} />
       </Stack>
     </ThemeProvider>
   );
@@ -69,7 +71,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AppThemeProvider>
-            <NavigationRoot />
+            <ToastProvider>
+              <NavigationRoot />
+            </ToastProvider>
           </AppThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

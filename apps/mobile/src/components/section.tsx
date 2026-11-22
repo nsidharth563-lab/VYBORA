@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
-import { Text } from './text';
+import { Text } from '@/ui/text';
 
 export function Section({ title, children }: PropsWithChildren<{ title: string }>) {
   const { colors, radii, spacing } = useAppTheme();

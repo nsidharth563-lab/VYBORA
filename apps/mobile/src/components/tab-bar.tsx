@@ -5,7 +5,7 @@ import { Clapperboard, Compass, House, Plus, UserRound, type LucideProps } from 
 import type { ComponentType } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
-import { Text } from './text';
+import { Text } from '@/ui/text';
 
 const ICONS: Record<string, { icon: ComponentType<LucideProps>; label: string }> = {
   index: { icon: House, label: 'Home' },
@@ -46,7 +46,7 @@ export function VyboraTabBar({ state, navigateToTab, insets }: BottomTabBarProps
               testID="tab-create"
             >
               <LinearGradient
-                colors={gradients.signal}
+                colors={gradients.signalStrong}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.create, { borderRadius: radii.md }]}
