@@ -67,6 +67,21 @@ const base = z.object({
   /** Sender: a Twilio number (E.164) or a Messaging Service SID (MG…). */
   TWILIO_FROM: emptyAsUndefined,
 
+  S3_ENDPOINT: emptyAsUndefined,
+  /** Endpoint baked into presigned URLs (must be reachable by devices); defaults to S3_ENDPOINT. */
+  S3_PUBLIC_ENDPOINT: emptyAsUndefined,
+  S3_REGION: z.string().default('us-east-1'),
+  S3_ACCESS_KEY_ID: z.string().default('vybora'),
+  S3_SECRET_ACCESS_KEY: z.string().default('vybora-dev-secret'),
+  S3_BUCKET_UPLOADS: z.string().default('vybora-uploads'),
+  S3_BUCKET_MEDIA: z.string().default('vybora-media'),
+  S3_FORCE_PATH_STYLE: bool('true'),
+  /** Create buckets on boot (local dev / tests only). */
+  S3_CREATE_BUCKETS: bool('false'),
+  CDN_BASE_URL: z.string().default('http://localhost:9000/vybora-media'),
+  /** Run the media worker inside the API process (dev/tests). Production runs `node dist/worker.js`. */
+  MEDIA_WORKER_INLINE: bool('true'),
+
   GOOGLE_OAUTH_CLIENT_IDS: csv,
   APPLE_BUNDLE_ID: emptyAsUndefined,
   APPLE_SERVICE_ID: emptyAsUndefined,

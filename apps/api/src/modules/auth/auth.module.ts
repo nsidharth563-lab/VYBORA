@@ -12,6 +12,7 @@ import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
 import { OAUTH_KEYS, remoteOAuthKeys, SocialAuthService } from './social-auth.service.js';
 import { TokenService } from './token.service.js';
+import { UserPresenter } from './user-view.js';
 
 @Module({
   controllers: [AuthController, MeController],
@@ -25,11 +26,12 @@ import { TokenService } from './token.service.js';
     SocialAuthService,
     RateLimitService,
     AuditService,
+    UserPresenter,
     { provide: 'FETCH', useFactory: () => globalThis.fetch },
     { provide: OAUTH_KEYS, useFactory: remoteOAuthKeys },
     // Every route is authenticated unless marked @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
-  exports: [TokenService, SessionService, RateLimitService, AuditService],
+  exports: [TokenService, SessionService, RateLimitService, AuditService, UserPresenter],
 })
 export class AuthModule {}

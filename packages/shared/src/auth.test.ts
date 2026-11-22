@@ -63,3 +63,26 @@ test('other schemas', () => {
   assert.equal(deleteAccountSchema.safeParse({ code: '123456' }).success, true);
   assert.equal(appleSignInSchema.safeParse({ identityToken: 'x'.repeat(30), nonce: 'short' }).success, false);
 });
+
+import { createUploadSchema, updateProfileSchema, websiteSchema } from './index.js';
+
+test('profile: website normalization and validation', () => {
+  assert.equal(websiteSchema.parse('vybora.app'), 'https://vybora.app');
+  assert.equal(websiteSchema.parse('http://nova.dev/links/'), 'http://nova.dev/links');
+  assert.equal(websiteSchema.parse(''), null);
+  assert.equal(websiteSchema.safeParse('javascript:alert(1)').success, false);
+  assert.equal(websiteSchema.safeParse('not a site').success, false);
+});
+
+test('profile: update schema trims, clears and rejects unknown fields', () => {
+  const r = updateProfileSchema.parse({ bio: '   ', displayName: ' Nova ', avatarMediaId: null });
+  assert.deepEqual(r, { bio: null, displayName: 'Nova', avatarMediaId: null });
+  assert.equal(updateProfileSchema.safeParse({ isVerified: true }).success, false);
+  assert.equal(updateProfileSchema.safeParse({ bio: 'x'.repeat(161) }).success, false);
+});
+
+test('uploads: only images up to 15 MB', () => {
+  assert.equal(createUploadSchema.safeParse({ purpose: 'avatar', mimeType: 'image/jpeg', sizeBytes: 1000 }).success, true);
+  assert.equal(createUploadSchema.safeParse({ purpose: 'avatar', mimeType: 'image/svg+xml', sizeBytes: 1000 }).success, false);
+  assert.equal(createUploadSchema.safeParse({ purpose: 'cover', mimeType: 'image/png', sizeBytes: 16 * 1024 * 1024 }).success, false);
+});

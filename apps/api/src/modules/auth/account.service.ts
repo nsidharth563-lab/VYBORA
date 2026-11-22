@@ -11,7 +11,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { OtpService } from './otp.service.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
-import { toMe } from './user-view.js';
+import { UserPresenter, WITH_MEDIA } from './user-view.js';
 
 type Channel = 'email' | 'phone';
 
@@ -25,6 +25,7 @@ export class AccountService {
     private readonly passwords: PasswordService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
+    private readonly present: UserPresenter,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -33,7 +34,7 @@ export class AccountService {
   }
 
   async me(userId: string): Promise<MeUser> {
-    return toMe(await this.user(userId));
+    return this.present.me(await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, include: WITH_MEDIA }));
   }
 
   // ---------------------------------------------------------------- contact verification
@@ -57,9 +58,10 @@ export class AccountService {
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: channel === 'email' ? { emailVerifiedAt: new Date() } : { phoneVerifiedAt: new Date() },
+      include: WITH_MEDIA,
     });
     await this.audit.log(`account.${channel}_verified`, { actorId: userId, ctx });
-    return toMe(updated);
+    return this.present.me(updated);
   }
 
   // ---------------------------------------------------------------- profile completion (age gate for social sign-ups)
@@ -69,8 +71,9 @@ export class AccountService {
       const u = await this.prisma.user.update({
         where: { id: userId },
         data: { dateOfBirth: new Date(`${input.dateOfBirth}T00:00:00Z`), ...(input.username ? { username: input.username } : {}) },
+        include: WITH_MEDIA,
       });
-      return toMe(u);
+      return this.present.me(u);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new AppException(HttpStatus.CONFLICT, 'USERNAME_TAKEN', 'That username is taken.', { field: 'username' });

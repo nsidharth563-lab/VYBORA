@@ -45,24 +45,64 @@ export interface PublicUser {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  /** Placeholder shown while the avatar loads (blurhash). */
+  avatarBlurhash?: string | null;
   isVerified: boolean;
   isPrivate: boolean;
+}
+
+export interface Relationship {
+  isSelf: boolean;
+  /** Viewer → profile: ACCEPTED, PENDING (request sent) or null. */
+  following: FollowStatus | null;
+  /** Profile → viewer (accepted follow). */
+  followsYou: boolean;
+  /** Profile has asked to follow the viewer (pending request). */
+  requestedYou: boolean;
+  blocked: boolean;
+  restricted: boolean;
+  muted: boolean;
+  closeFriend: boolean;
 }
 
 export interface ProfileView extends PublicUser {
   bio: string | null;
   website: string | null;
   coverUrl: string | null;
+  coverBlurhash?: string | null;
   followerCount: number;
   followingCount: number;
   postCount: number;
-  /** Relationship of the viewer to this profile. */
-  viewer: {
-    following: FollowStatus | null;
-    followsYou: boolean;
-    blocked: boolean;
-    isSelf: boolean;
-  };
+  /** False for private accounts the viewer doesn't follow: lists and posts are hidden. */
+  canViewContent: boolean;
+  viewer: Relationship;
+}
+
+/** Row in follower / following / request / block lists. */
+export interface UserListItem extends PublicUser {
+  displayName: string;
+  viewer: Pick<Relationship, 'isSelf' | 'following' | 'followsYou'>;
+}
+
+export type MediaStatus = 'PENDING_UPLOAD' | 'UPLOADED' | 'PROCESSING' | 'READY' | 'FAILED' | 'QUARANTINED';
+
+export interface UploadTicket {
+  mediaId: string;
+  /** Presigned PUT URL — upload the bytes directly to storage. */
+  uploadUrl: string;
+  /** Headers that must be sent with the PUT (they're part of the signature). */
+  uploadHeaders: Record<string, string>;
+  expiresAt: ISODateString;
+}
+
+export interface MediaView {
+  id: string;
+  status: MediaStatus;
+  urls: Record<string, string>;
+  blurhash: string | null;
+  width: number | null;
+  height: number | null;
+  failureReason?: string | null;
 }
 
 export interface AuthTokens {
@@ -74,6 +114,11 @@ export interface AuthTokens {
 
 /** The signed-in user's own account (never returned for other users). */
 export interface MeUser extends PublicUser {
+  coverUrl?: string | null;
+  website?: string | null;
+  followerCount?: number;
+  followingCount?: number;
+  postCount?: number;
   email: string | null;
   emailVerified: boolean;
   phone: string | null;

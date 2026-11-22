@@ -10,6 +10,7 @@ import { Mailer, type MailMessage } from '../../src/infra/mailer/mailer.js';
 import { PrismaService } from '../../src/infra/prisma/prisma.service.js';
 import { RedisService } from '../../src/infra/redis/redis.service.js';
 import { SmsSender } from '../../src/infra/sms/sms.js';
+import { StorageService } from '../../src/infra/storage/storage.service.js';
 import { OAUTH_KEYS } from '../../src/modules/auth/social-auth.service.js';
 
 export class CaptureMailer extends Mailer {
@@ -68,6 +69,7 @@ export interface Harness {
   sms: CaptureSms;
   prisma: PrismaService;
   redis: RedisService;
+  storage: StorageService;
   google: TestIdP;
   apple: TestIdP;
   close(): Promise<void>;
@@ -82,6 +84,10 @@ export async function createHarness(env: Record<string, string> = {}): Promise<H
     PWNED_PASSWORD_CHECK: 'true',
     GOOGLE_OAUTH_CLIENT_IDS: GOOGLE_CLIENT_ID,
     APPLE_BUNDLE_ID,
+    // S3-compatible storage: MinIO in CI/docker, any local emulator otherwise.
+    S3_ENDPOINT: process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000',
+    S3_CREATE_BUCKETS: 'true',
+    MEDIA_WORKER_INLINE: 'true',
     ...env,
   });
   const mail = new CaptureMailer();
@@ -112,6 +118,7 @@ export async function createHarness(env: Record<string, string> = {}): Promise<H
     sms,
     prisma: app.get(PrismaService),
     redis: app.get(RedisService),
+    storage: app.get(StorageService),
     google: g.idp,
     apple: a.idp,
     close: () => app.close(),

@@ -93,6 +93,17 @@ enum MediaKind {
   FILE
 }
 
+enum MediaPurpose {
+  AVATAR
+  COVER
+  POST
+  REEL
+  STORY
+  MESSAGE
+  COMMUNITY
+  AI
+}
+
 enum MediaStatus {
   PENDING_UPLOAD
   UPLOADED
@@ -802,12 +813,14 @@ model UserInterest {
 // -----------------------------------------------------------------------------
 
 model MediaAsset {
-  id            String      @id @default(uuid(7)) @db.Uuid
-  ownerId       String      @db.Uuid
+  id            String       @id @default(uuid(7)) @db.Uuid
+  ownerId       String       @db.Uuid
   kind          MediaKind
-  status        MediaStatus @default(PENDING_UPLOAD)
+  /// Decides which renditions the worker produces.
+  purpose       MediaPurpose @default(POST)
+  status        MediaStatus  @default(PENDING_UPLOAD)
   /// Object key of the original upload (private bucket).
-  storageKey    String      @unique
+  storageKey    String       @unique
   mimeType      String
   sizeBytes     BigInt?
   width         Int?
@@ -819,11 +832,11 @@ model MediaAsset {
   /// Processed renditions: { "thumb": key, "720p": key, "hls": key, ... }
   variants      Json?
   /// True for client-side encrypted DM attachments (server cannot read them).
-  isEncrypted   Boolean     @default(false)
+  isEncrypted   Boolean      @default(false)
   moderation    Json?
   failureReason String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   deletedAt     DateTime?
 
   owner            User           @relation("MediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)

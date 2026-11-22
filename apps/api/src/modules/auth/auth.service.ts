@@ -16,7 +16,7 @@ import { PasswordService } from './password.service.js';
 import { SessionService, type TokenPair } from './session.service.js';
 import type { SocialProfile } from './social-auth.service.js';
 import { sha256 } from './token.service.js';
-import { toMe } from './user-view.js';
+import { UserPresenter, WITH_MEDIA } from './user-view.js';
 
 export const LIMITS = {
   signupIp: { name: 'signup:ip', limit: 10, windowSec: 3600 },
@@ -47,6 +47,7 @@ export class AuthService {
     private readonly otp: OtpService,
     private readonly limits: RateLimitService,
     private readonly audit: AuditService,
+    private readonly present: UserPresenter,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -86,7 +87,8 @@ export class AuthService {
     }
     const tokens = await this.sessions.start(user, ctx);
     await this.audit.log('auth.login', { actorId: user.id, entityType: 'session', entityId: tokens.sessionId, ctx, metadata: { method } });
-    return { user: toMe(user), tokens: pickTokens(tokens), ...(restored ? { restored } : {}) };
+    const full = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: WITH_MEDIA });
+    return { user: this.present.me(full), tokens: pickTokens(tokens), ...(restored ? { restored } : {}) };
   }
 
   // ---------------------------------------------------------------- sign-up
