@@ -5,12 +5,14 @@ Baseline: OWASP ASVS Level 2 for API and admin; OWASP MASVS L1 for mobile
 
 ## Threats → controls
 
+Status: authentication controls below are **implemented and tested** as of Phase 3 (see [AUTH.md](../api/AUTH.md)); content, upload and payment controls arrive with their phases.
+
 | Threat | Controls |
 |---|---|
-| Credential stuffing / brute force | argon2id hashing; per-IP + per-account rate limits; progressive delays; breached-password check (HIBP k-anonymity); login alerts on new device |
-| Token theft | 15-min JWT access tokens; refresh tokens opaque, hashed, rotated, reuse ⇒ session revoked; tokens in Keychain/Keystore (`expo-secure-store`), never AsyncStorage |
-| OTP / SMS abuse | hashed codes, 10-min expiry, 5 attempts, per-number & per-IP limits, country allow-list, SMS-pumping detection |
-| Account enumeration | identical responses for login/forgot-password/signup-exists paths |
+| Credential stuffing / brute force | ✅ argon2id hashing; per-IP + per-account rate limits (lockout with Retry-After); breached-password check (HIBP k-anonymity). *Planned:* new-device login alerts |
+| Token theft | ✅ 15-min JWT access tokens; refresh tokens opaque, hashed, rotated, reuse ⇒ session revoked; refresh token in Keychain/Keystore (`expo-secure-store`), access token in memory only |
+| OTP / SMS abuse | ✅ HMAC-hashed codes, 10-min expiry, 5 attempts, 60 s cooldown, 5/hour per destination, per-IP limits. *Planned:* SMS country allow-list, SMS-pumping detection |
+| Account enumeration | ✅ identical responses (and constant-work hashing) for login, code sign-in and forgot-password. Trade-off: sign-up reports a taken email/phone, mitigated by the sign-up rate limit |
 | IDOR / privacy leaks | single `VisibilityPolicy` for every content read; explicit response serializers; authorization tests per endpoint |
 | Injection | Prisma parameterized queries; no string-built SQL (raw queries only via tagged templates); zod validation |
 | XSS (admin / web) | React escaping, strict CSP, no `dangerouslySetInnerHTML` on user content, sanitized link previews |

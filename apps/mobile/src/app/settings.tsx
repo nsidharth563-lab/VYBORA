@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
-import { Palette, RefreshCw } from 'lucide-react-native';
+import { LogOut, Mail, Palette, Phone, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Row, Section } from '@/components/section';
-import { ListItem } from '@/ui';
+import { Badge, ListItem } from '@/ui';
+import { useAuth } from '@/stores/auth';
 import { Screen } from '@/ui/screen';
 import { Segmented } from '@/ui/segmented';
 import { Text } from '@/ui/text';
@@ -62,6 +63,31 @@ function ServerStatus() {
   );
 }
 
+function AccountSection() {
+  const user = useAuth((s) => s.user);
+  const signOut = useAuth((s) => s.signOut);
+  if (!user) return null;
+  const contact = (channel: 'email' | 'phone', value: string | null, verified: boolean) =>
+    value ? (
+      <ListItem
+        icon={channel === 'email' ? Mail : Phone}
+        title={value}
+        subtitle={verified ? undefined : 'Not verified — tap to verify'}
+        trailing={verified ? <Badge label="VERIFIED" tone="success" /> : undefined}
+        onPress={verified ? undefined : () => router.push({ pathname: '/verify', params: { channel, send: '1' } })}
+        testID={`contact-${channel}`}
+      />
+    ) : null;
+  return (
+    <Section title="Account">
+      {contact('email', user.email, user.emailVerified)}
+      {contact('phone', user.phone, user.phoneVerified)}
+      <ListItem icon={ShieldCheck} title="Security" subtitle="Devices, password, delete account" onPress={() => router.push('/security')} testID="open-security" />
+      <ListItem icon={LogOut} title="Log out" onPress={() => void signOut()} testID="logout" />
+    </Section>
+  );
+}
+
 export default function SettingsScreen() {
   const { spacing } = useAppTheme();
   const theme = usePreferences((s) => s.theme);
@@ -69,6 +95,8 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={[]} scroll contentStyle={{ gap: spacing[6] }}>
+      <AccountSection />
+
       <Section title="Appearance">
         <Segmented value={theme} options={THEME_OPTIONS} onChange={setTheme} accessibilityLabel="Theme" />
       </Section>

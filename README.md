@@ -6,13 +6,19 @@ A next-generation social platform: social feed, short video (Reels), stories,
 music, communities, real-time messaging, an AI creation studio and a creator
 economy — for Android, iOS and (later) Web.
 
-> **Project status — Phase 2 (Design system) complete.**
-> Running today: the NestJS API (health/readiness, config validation, error envelope,
-> security headers, structured logs) and the Expo app (five-tab navigation, light/dark
-> theming, brand identity, live server status) plus an accessible component library with
-> a live gallery (Settings → Design system). Lint, typecheck and tests run in CI.
-> Next: Phase 3 (authentication). See the [roadmap](documentation/architecture/ROADMAP.md).
+> **Project status — Phase 3 (Authentication) complete.**
+> Working today: sign-up with email or phone, verification codes, password and
+> one-time-code sign-in, password reset, Sign in with Apple (iOS) and Google/Apple
+> token verification on the server, refresh-token rotation with theft detection,
+> device/session management, password change, and account deletion with a 30-day
+> grace period — on top of the design system and app shell from Phases 1–2.
+> Next: Phase 4 (profiles & social graph). See the [roadmap](documentation/architecture/ROADMAP.md).
 
+<p align="center">
+  <img src="documentation/screenshots/auth-welcome.png" width="200" alt="Welcome" />
+  <img src="documentation/screenshots/auth-signup.png" width="200" alt="Sign up" />
+  <img src="documentation/screenshots/auth-security-dark.png" width="200" alt="Signed-in devices (dark)" />
+</p>
 <p align="center">
   <img src="documentation/screenshots/home-light.png" width="200" alt="Home (light)" />
   <img src="documentation/screenshots/create-dark.png" width="200" alt="Create (dark)" />
@@ -33,6 +39,7 @@ economy — for Android, iOS and (later) Web.
 | [Database schema](documentation/database/SCHEMA.md) | ERDs, conventions, indexes, planned migrations |
 | [Feed ranking](documentation/architecture/RANKING.md) · [Music licensing](documentation/architecture/MUSIC_LICENSING.md) | Domain designs |
 | [Design system](documentation/design/DESIGN_SYSTEM.md) | Tokens, accessibility rules, components |
+| [Authentication](documentation/api/AUTH.md) | Tokens, endpoints, codes, rate limits, social sign-in, deletion |
 | [API conventions](documentation/api/CONVENTIONS.md) | REST/WS conventions, errors, pagination |
 | [Security](documentation/security/SECURITY.md) | Threat model, E2EE plan, GDPR |
 | [Deployment](infrastructure/deployment/README.md) | AWS target architecture |
@@ -101,7 +108,9 @@ pnpm --filter @vybora/api dev       # http://localhost:4000/v1/health/ready
 cp apps/mobile/.env.example apps/mobile/.env
 pnpm --filter @vybora/mobile start  # then i (iOS) · a (Android) · w (web) · or scan the QR with Expo Go
 ```
-Open **Profile → Settings** to see live server status from the API.
+Create an account on the Welcome screen. Verification codes are emailed to **Mailpit**
+(http://localhost:8025). With `SMS_PROVIDER=console`, SMS codes are printed in the API log.
+**Profile → Settings** shows your account, devices (Security) and live server status.
 
 ### 6. Verify everything
 ```bash

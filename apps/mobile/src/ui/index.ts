@@ -8,6 +8,7 @@ export { BrandMark, Wordmark } from './brand';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
+export { CodeInput } from './code-input';
 export { EmptyState } from './empty-state';
 export { Icon, type IconComponent, type IconSize, type IconTone } from './icon';
 export { IconButton } from './icon-button';

@@ -1,9 +1,9 @@
 import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useAppTheme } from '@/theme';
+import { Text } from './text';
 
 // react-native-web ignores thumbColor for the "on" state and uses its own teal.
 const webThumb = Platform.OS === 'web' ? ({ activeThumbColor: '#FFFFFF' } as object) : {};
-import { useAppTheme } from '@/theme';
-import { Text } from './text';
 
 interface SwitchRowProps {
   label: string;

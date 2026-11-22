@@ -15,3 +15,26 @@ jest.mock('expo-image', () => {
   const Image = (props) => require('react').createElement(View, { ...props, testID: props.testID ?? 'expo-image' });
   return { Image };
 });
+
+// expo-secure-store: in-memory keychain for tests.
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY',
+    getItemAsync: jest.fn(async (k) => (store.has(k) ? store.get(k) : null)),
+    setItemAsync: jest.fn(async (k, v) => void store.set(k, v)),
+    deleteItemAsync: jest.fn(async (k) => void store.delete(k)),
+    __store: store,
+  };
+});
+
+// Sign in with Apple is iOS-hardware only; tests run as if unavailable.
+jest.mock('expo-apple-authentication', () => ({
+  isAvailableAsync: jest.fn(async () => false),
+  signInAsync: jest.fn(),
+  formatFullName: jest.fn(() => ''),
+  AppleAuthenticationButton: () => null,
+  AppleAuthenticationButtonType: { CONTINUE: 1 },
+  AppleAuthenticationButtonStyle: { BLACK: 0, WHITE: 1 },
+  AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
+}));

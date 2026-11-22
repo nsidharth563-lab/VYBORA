@@ -18,6 +18,15 @@ export class ApiRequestError extends Error {
   get isNetwork() {
     return this.status === 0;
   }
+  /** Field-level messages from VALIDATION_FAILED / conflict responses, keyed by field name. */
+  get fieldErrors(): Record<string, string> {
+    const out: Record<string, string> = {};
+    const issues = (this.details?.issues ?? []) as { path: string; message: string }[];
+    for (const i of issues) if (i.path && !out[i.path]) out[i.path] = i.message;
+    const field = this.details?.field;
+    if (typeof field === 'string' && !out[field]) out[field] = this.message;
+    return out;
+  }
 }
 
 const isLocalHost = (host: string) => host === 'localhost' || host === '127.0.0.1';
@@ -49,27 +58,40 @@ export interface RequestOptions {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Skip the Authorization header and refresh logic (auth endpoints). */
+  anonymous?: boolean;
+}
+
+export interface AuthHooks {
+  getAccessToken: () => string | null | undefined;
+  /** Obtain a fresh access token; resolve false if the session is gone. */
+  refresh: () => Promise<boolean>;
+  /** The session can't be recovered — sign out locally. */
+  onSessionEnded: (code: string) => void;
 }
 
 export interface ApiClientOptions {
   baseUrl: string;
-  getAccessToken?: () => string | null | undefined;
   fetchImpl?: typeof fetch;
   defaultTimeoutMs?: number;
+  defaultHeaders?: () => Record<string, string>;
 }
 
-export function createApiClient(opts: ApiClientOptions) {
-  const fetchImpl = opts.fetchImpl ?? fetch;
-  const defaultTimeout = opts.defaultTimeoutMs ?? 15_000;
+const SESSION_ENDED = new Set(['AUTH_SESSION_REVOKED', 'AUTH_TOKEN_INVALID', 'AUTH_REQUIRED', 'AUTH_REFRESH_INVALID', 'AUTH_REFRESH_REUSED']);
 
-  async function request<T>(path: string, o: RequestOptions = {}): Promise<T> {
+export function createApiClient(opts: ApiClientOptions) {
+  const fetchImpl = opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const defaultTimeout = opts.defaultTimeoutMs ?? 15_000;
+  let auth: AuthHooks | null = null;
+
+  async function send<T>(path: string, o: RequestOptions): Promise<T> {
     const url = new URL(opts.baseUrl + path);
     for (const [k, v] of Object.entries(o.query ?? {})) {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
-    const headers: Record<string, string> = { accept: 'application/json', ...o.headers };
+    const headers: Record<string, string> = { accept: 'application/json', ...opts.defaultHeaders?.(), ...o.headers };
     if (o.body !== undefined) headers['content-type'] = 'application/json';
-    const token = opts.getAccessToken?.();
+    const token = o.anonymous ? null : auth?.getAccessToken();
     if (token) headers.authorization = `Bearer ${token}`;
 
     const controller = new AbortController();
@@ -121,15 +143,41 @@ export function createApiClient(opts: ApiClientOptions) {
     return json as T;
   }
 
+  async function request<T>(path: string, o: RequestOptions = {}): Promise<T> {
+    try {
+      return await send<T>(path, o);
+    } catch (e) {
+      if (!(e instanceof ApiRequestError) || o.anonymous || !auth || e.status !== 401) throw e;
+      if (e.code === 'AUTH_TOKEN_EXPIRED') {
+        // Refresh once (shared by concurrent callers) and replay the request.
+        if (await auth.refresh()) return send<T>(path, o);
+        throw e;
+      }
+      if (SESSION_ENDED.has(e.code)) auth.onSessionEnded(e.code);
+      throw e;
+    }
+  }
+
   return {
     request,
+    setAuth(hooks: AuthHooks | null) {
+      auth = hooks;
+    },
     get: <T>(path: string, o?: Omit<RequestOptions, 'method' | 'body'>) => request<T>(path, { ...o, method: 'GET' }),
-    post: <T>(path: string, body?: unknown, o?: Omit<RequestOptions, 'method' | 'body'>) =>
-      request<T>(path, { ...o, method: 'POST', body }),
+    post: <T>(path: string, body?: unknown, o?: Omit<RequestOptions, 'method' | 'body'>) => request<T>(path, { ...o, method: 'POST', body }),
+    del: <T>(path: string, o?: Omit<RequestOptions, 'method' | 'body'>) => request<T>(path, { ...o, method: 'DELETE' }),
   };
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
-/** App-wide client. Access-token injection is wired in Phase 3 (auth). */
-export const api = createApiClient({ baseUrl: resolveApiUrl() });
+/** Informational client headers (shown in the user's sessions list). */
+function clientHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'x-client-platform': Platform.OS, 'x-app-version': Constants.expoConfig?.version ?? '0' };
+  const name = Constants.deviceName;
+  if (name) h['x-device-name'] = name.slice(0, 64);
+  return h;
+}
+
+/** App-wide client; the auth store installs its hooks via api.setAuth(). */
+export const api = createApiClient({ baseUrl: resolveApiUrl(), defaultHeaders: clientHeaders });
