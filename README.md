@@ -6,14 +6,18 @@ A next-generation social platform: social feed, short video (Reels), stories,
 music, communities, real-time messaging, an AI creation studio and a creator
 economy — for Android, iOS and (later) Web.
 
-> **Project status — Phase 3 (Authentication) complete.**
-> Working today: sign-up with email or phone, verification codes, password and
-> one-time-code sign-in, password reset, Sign in with Apple (iOS) and Google/Apple
-> token verification on the server, refresh-token rotation with theft detection,
-> device/session management, password change, and account deletion with a 30-day
-> grace period — on top of the design system and app shell from Phases 1–2.
-> Next: Phase 4 (profiles & social graph). See the [roadmap](documentation/architecture/ROADMAP.md).
+> **Project status — Phase 4 (Profiles & social graph) complete.**
+> Working today: accounts and sign-in (Phase 3); profiles with photo and cover uploads
+> processed by a background worker; follow, private accounts with follow requests,
+> block, restrict, mute and close friends; people search — all enforced by a single
+> visibility policy. Next: Phase 5 (posts, feed, comments, likes and reporting).
+> See the [roadmap](documentation/architecture/ROADMAP.md).
 
+<p align="center">
+  <img src="documentation/screenshots/profile-own-profile.png" width="200" alt="Own profile with uploaded photo" />
+  <img src="documentation/screenshots/profile-kai-following.png" width="200" alt="Following another user" />
+  <img src="documentation/screenshots/profile-private-requested.png" width="200" alt="Private account, request sent" />
+</p>
 <p align="center">
   <img src="documentation/screenshots/auth-welcome.png" width="200" alt="Welcome" />
   <img src="documentation/screenshots/auth-signup.png" width="200" alt="Sign up" />
@@ -39,6 +43,7 @@ economy — for Android, iOS and (later) Web.
 | [Database schema](documentation/database/SCHEMA.md) | ERDs, conventions, indexes, planned migrations |
 | [Feed ranking](documentation/architecture/RANKING.md) · [Music licensing](documentation/architecture/MUSIC_LICENSING.md) | Domain designs |
 | [Design system](documentation/design/DESIGN_SYSTEM.md) | Tokens, accessibility rules, components |
+| [Profiles, graph & media](documentation/api/SOCIAL.md) | Visibility policy, follow/block rules, upload pipeline |
 | [Authentication](documentation/api/AUTH.md) | Tokens, endpoints, codes, rate limits, social sign-in, deletion |
 | [API conventions](documentation/api/CONVENTIONS.md) | REST/WS conventions, errors, pagination |
 | [Security](documentation/security/SECURITY.md) | Threat model, E2EE plan, GDPR |
@@ -102,6 +107,8 @@ pnpm db:generate       # typed Prisma client → apps/api/src/generated (git-ign
 ```bash
 pnpm --filter @vybora/api dev       # http://localhost:4000/v1/health/ready
 ```
+Uploads are processed by a media worker that runs inside the API in development
+(`MEDIA_WORKER_INLINE=true`). In production run it separately: `pnpm --filter @vybora/api worker`.
 
 ### 5. Run the mobile app
 ```bash

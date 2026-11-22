@@ -60,6 +60,19 @@ describe('API (e2e)', () => {
     expect(denied.headers['access-control-allow-origin']).toBeUndefined();
   });
 
+  it('CORS preflight allows every method and header the app uses (browser clients)', async () => {
+    for (const method of ['PATCH', 'PUT', 'DELETE']) {
+      const res = await inject({
+        method: 'OPTIONS',
+        url: '/v1/me/profile',
+        headers: { origin: 'http://allowed.test', 'access-control-request-method': method, 'access-control-request-headers': 'authorization,content-type,x-client-platform' },
+      });
+      expect(res.statusCode).toBe(204);
+      expect(String(res.headers['access-control-allow-methods'])).toContain(method);
+      expect(String(res.headers['access-control-allow-headers']).toLowerCase()).toContain('x-client-platform');
+    }
+  });
+
   it('malformed JSON → 400 envelope, not 500', async () => {
     const res = await inject({ method: 'POST', url: '/v1/health', headers: { 'content-type': 'application/json' }, payload: '{bad' });
     expect(res.statusCode).toBeGreaterThanOrEqual(400);

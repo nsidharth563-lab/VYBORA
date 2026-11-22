@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  PutBucketCorsCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -56,6 +57,16 @@ export class StorageService implements OnModuleInit {
         this.logger.log(`created bucket ${bucket}`);
       }
     }
+    // Local dev only: browsers (Expo web) PUT straight to the uploads bucket.
+    // Production sets CORS (app origins only) in infrastructure, not here.
+    await this.s3
+      .send(
+        new PutBucketCorsCommand({
+          Bucket: this.buckets.uploads,
+          CORSConfiguration: { CORSRules: [{ AllowedOrigins: ['*'], AllowedMethods: ['PUT'], AllowedHeaders: ['*'], MaxAgeSeconds: 3600 }] },
+        }),
+      )
+      .catch((e: Error) => this.logger.warn(`uploads bucket CORS not set: ${e.message}`));
     // Local dev only: media bucket readable without signing (production: CloudFront OAC).
     await this.s3
       .send(

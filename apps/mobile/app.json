@@ -46,7 +46,14 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VYBORA uses your photo library so you can set a profile photo and share posts.",
+          "cameraPermission": "VYBORA uses the camera so you can take photos and record reels."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

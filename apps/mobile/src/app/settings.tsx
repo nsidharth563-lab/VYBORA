@@ -1,9 +1,12 @@
 import Constants from 'expo-constants';
-import { LogOut, Mail, Palette, Phone, RefreshCw, ShieldCheck } from 'lucide-react-native';
+import { Ban, LogOut, Mail, Palette, Phone, RefreshCw, ShieldCheck, Star, UserPlus } from 'lucide-react-native';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { socialApi } from '@/lib/social-api';
+import { errorMessage } from '@/lib/form';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Row, Section } from '@/components/section';
-import { Badge, ListItem } from '@/ui';
+import { Badge, ListItem, SwitchRow, useToast } from '@/ui';
 import { useAuth } from '@/stores/auth';
 import { Screen } from '@/ui/screen';
 import { Segmented } from '@/ui/segmented';
@@ -88,6 +91,36 @@ function AccountSection() {
   );
 }
 
+function PrivacySection() {
+  const user = useAuth((s) => s.user);
+  const setUser = useAuth((s) => s.setUser);
+  const qc = useQueryClient();
+  const toast = useToast();
+  const toggle = useMutation({
+    mutationFn: (isPrivate: boolean) => socialApi.updateProfile({ isPrivate }),
+    onSuccess: (me) => {
+      setUser(me);
+      void qc.invalidateQueries({ queryKey: ['me'] });
+    },
+    onError: (e) => toast.show({ message: errorMessage(e), tone: 'error' }),
+  });
+  if (!user) return null;
+  return (
+    <Section title="Privacy">
+      <SwitchRow
+        label="Private account"
+        description="Only approved followers see your posts and lists."
+        value={toggle.isPending ? !!toggle.variables : user.isPrivate}
+        onValueChange={(v) => toggle.mutate(v)}
+        testID="private-switch"
+      />
+      <ListItem icon={UserPlus} title="Follow requests" onPress={() => router.push('/follow-requests')} testID="open-requests" />
+      <ListItem icon={Star} title="Close friends" onPress={() => router.push('/close-friends')} testID="open-close-friends" />
+      <ListItem icon={Ban} title="Blocked accounts" onPress={() => router.push('/blocked')} testID="open-blocked" />
+    </Section>
+  );
+}
+
 export default function SettingsScreen() {
   const { spacing } = useAppTheme();
   const theme = usePreferences((s) => s.theme);
@@ -96,6 +129,7 @@ export default function SettingsScreen() {
   return (
     <Screen edges={[]} scroll contentStyle={{ gap: spacing[6] }}>
       <AccountSection />
+      <PrivacySection />
 
       <Section title="Appearance">
         <Segmented value={theme} options={THEME_OPTIONS} onChange={setTheme} accessibilityLabel="Theme" />

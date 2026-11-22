@@ -1,61 +1,54 @@
 import { router } from 'expo-router';
 import { Grid3x3, Settings } from 'lucide-react-native';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { RefreshControl, ScrollView, Share, View } from 'react-native';
 import { TopBar } from '@/components/top-bar';
+import { ProfileHeader } from '@/features/social/profile-header';
+import { useMe } from '@/hooks/use-me';
 import { useAuth } from '@/stores/auth';
 import { useAppTheme } from '@/theme';
-import { Avatar, EmptyState, IconButton, Screen, Tabs, Text } from '@/ui';
+import { Button, EmptyState, IconButton, Screen, Tabs } from '@/ui';
 
 export default function ProfileScreen() {
   const { spacing } = useAppTheme();
+  const me = useMe();
   const user = useAuth((s) => s.user);
   const [tab, setTab] = useState<'posts' | 'reels' | 'saved'>('posts');
   if (!user) return null;
 
   return (
-    <Screen header={<TopBar title={`@${user.username}`} right={<IconButton icon={Settings} label="Settings" onPress={() => router.push('/settings')} />} />} scroll>
-      <View style={{ alignItems: 'center', gap: spacing[2], paddingVertical: spacing[4] }}>
-        <Avatar name={user.displayName} size="xl" verified={user.isVerified} />
-        <Text variant="title" testID="profile-name">
-          {user.displayName}
-        </Text>
-        <Text variant="body" tone="secondary">
-          @{user.username}
-        </Text>
-        {user.bio ? (
-          <Text variant="body" align="center">
-            {user.bio}
-          </Text>
-        ) : null}
-        <View style={{ flexDirection: 'row', gap: spacing[8], marginTop: spacing[3] }}>
-          {[
-            ['0', 'Posts'],
-            ['0', 'Followers'],
-            ['0', 'Following'],
-          ].map(([n, l]) => (
-            <View key={l} style={{ alignItems: 'center' }} accessible accessibilityLabel={`${n} ${l}`}>
-              <Text variant="heading">{n}</Text>
-              <Text variant="caption" tone="secondary">
-                {l}
-              </Text>
-            </View>
-          ))}
+    <Screen edges={['top']} contentStyle={{ padding: 0 }} header={<TopBar title={`@${user.username}`} right={<IconButton icon={Settings} label="Settings" onPress={() => router.push('/settings')} />} />}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing[4], gap: spacing[4] }}
+        refreshControl={<RefreshControl refreshing={me.isRefetching} onRefresh={() => void me.refetch()} />}
+      >
+        <ProfileHeader
+          user={{ ...user, coverUrl: user.coverUrl ?? null, followerCount: user.followerCount ?? 0, followingCount: user.followingCount ?? 0, postCount: user.postCount ?? 0 }}
+          actions={
+            <>
+              <View style={{ flex: 1 }}>
+                <Button label="Edit profile" variant="outline" size="sm" fullWidth onPress={() => router.push('/edit-profile')} testID="edit-profile" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button label="Share profile" variant="outline" size="sm" fullWidth onPress={() => void Share.share({ message: `Find me on VYBORA: @${user.username} — https://vybora.app/u/${user.username}` })} />
+              </View>
+            </>
+          }
+        />
+        <Tabs
+          accessibilityLabel="Profile content"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: 'posts', label: 'Posts' },
+            { key: 'reels', label: 'Reels' },
+            { key: 'saved', label: 'Saved' },
+          ]}
+        />
+        <View style={{ minHeight: 220 }}>
+          <EmptyState icon={Grid3x3} title="Nothing here yet" message="Your posts, reels and saved items will appear here." phase="Posts arrive in Phase 5 · Reels in Phase 7" />
         </View>
-      </View>
-      <Tabs
-        accessibilityLabel="Profile content"
-        value={tab}
-        onChange={setTab}
-        items={[
-          { key: 'posts', label: 'Posts' },
-          { key: 'reels', label: 'Reels' },
-          { key: 'saved', label: 'Saved' },
-        ]}
-      />
-      <View style={{ minHeight: 260 }}>
-        <EmptyState icon={Grid3x3} title="Nothing here yet" message="Profile editing, photos and follows arrive in Phase 4; posts and reels in Phases 5 and 7." phase="Phase 4 · Profiles" />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

@@ -49,6 +49,13 @@ function NavigationRoot() {
           <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
           <Stack.Screen name="verify" options={{ title: 'Verify' }} />
           <Stack.Screen name="design-system" options={{ title: 'Design system' }} />
+          <Stack.Screen name="edit-profile" options={{ title: 'Edit profile' }} />
+          <Stack.Screen name="u/[username]/index" options={{ title: '' }} />
+          <Stack.Screen name="u/[username]/followers" options={{ title: 'Followers' }} />
+          <Stack.Screen name="u/[username]/following" options={{ title: 'Following' }} />
+          <Stack.Screen name="follow-requests" options={{ title: 'Follow requests' }} />
+          <Stack.Screen name="close-friends" options={{ title: 'Close friends' }} />
+          <Stack.Screen name="blocked" options={{ title: 'Blocked accounts' }} />
         </Stack.Protected>
         {/* Social sign-ups must pass the age gate before using the app */}
         <Stack.Protected guard={signedIn && needsProfile} redirectTo={signedIn ? '/' : '/welcome'}>

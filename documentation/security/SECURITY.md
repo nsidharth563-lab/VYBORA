@@ -5,7 +5,7 @@ Baseline: OWASP ASVS Level 2 for API and admin; OWASP MASVS L1 for mobile
 
 ## Threats → controls
 
-Status: authentication controls below are **implemented and tested** as of Phase 3 (see [AUTH.md](../api/AUTH.md)); content, upload and payment controls arrive with their phases.
+Status: rows marked ✅ are **implemented and tested** (authentication in Phase 3, privacy/uploads in Phase 4) (see [AUTH.md](../api/AUTH.md)); content, upload and payment controls arrive with their phases.
 
 | Threat | Controls |
 |---|---|
@@ -13,10 +13,10 @@ Status: authentication controls below are **implemented and tested** as of Phase
 | Token theft | ✅ 15-min JWT access tokens; refresh tokens opaque, hashed, rotated, reuse ⇒ session revoked; refresh token in Keychain/Keystore (`expo-secure-store`), access token in memory only |
 | OTP / SMS abuse | ✅ HMAC-hashed codes, 10-min expiry, 5 attempts, 60 s cooldown, 5/hour per destination, per-IP limits. *Planned:* SMS country allow-list, SMS-pumping detection |
 | Account enumeration | ✅ identical responses (and constant-work hashing) for login, code sign-in and forgot-password. Trade-off: sign-up reports a taken email/phone, mitigated by the sign-up rate limit |
-| IDOR / privacy leaks | single `VisibilityPolicy` for every content read; explicit response serializers; authorization tests per endpoint |
+| IDOR / privacy leaks | ✅ single `VisibilityService` for every profile/list read (policy matrix tested); `UserPresenter` is the only mapper from user rows to API shapes; media readable only by its owner; blocked side sees "doesn't exist" |
 | Injection | Prisma parameterized queries; no string-built SQL (raw queries only via tagged templates); zod validation |
 | XSS (admin / web) | React escaping, strict CSP, no `dangerouslySetInnerHTML` on user content, sanitized link previews |
-| Malicious uploads | presigned URLs scoped to key + content-type + max size; server-side magic-byte check; re-encode all images/videos (strips EXIF/GPS and payloads); quarantine status; never serve originals |
+| Malicious uploads | ✅ (images) presigned URLs scoped to key + content-type + length; size re-checked on completion; format sniffed from bytes (JPEG/PNG/WebP only); 50 MP decompression-bomb guard; every image re-encoded with all metadata (EXIF/GPS) stripped; originals deleted, never served. *Phase 5/7:* video, content moderation scan |
 | Abuse / spam | rate limits on follow/like/comment/DM; new-account restrictions; hidden words; spam scoring; message requests for non-followers |
 | Payment fraud | webhook-only fulfillment with signature verification; idempotency keys; ledger invariants; payout review & holds; KYC via provider |
 | Admin misuse | staff RBAC, mandatory TOTP, IP allow-list option, every mutation in `audit_logs`, least-privilege roles |

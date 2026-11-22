@@ -38,3 +38,9 @@ jest.mock('expo-apple-authentication', () => ({
   AppleAuthenticationButtonStyle: { BLACK: 0, WHITE: 1 },
   AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
 }));
+
+// Photo picker: grants access and returns one cropped JPEG.
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true, accessPrivileges: 'all' })),
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///photos/me.jpg', mimeType: 'image/jpeg', width: 800, height: 800 }] })),
+}));

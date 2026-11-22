@@ -138,7 +138,7 @@ describe('signed in', () => {
     expect(await screen.findByText('Your feed starts here')).toBeTruthy();
     for (const tab of ['Home', 'Explore', 'Create', 'Reels', 'Profile']) expect(screen.getByLabelText(tab)).toBeTruthy();
     await press(screen.getByTestId('tab-explore'));
-    expect(await screen.findByText("Discover what's trending")).toBeTruthy();
+    expect(await screen.findByText('Find people')).toBeTruthy();
     await press(screen.getByTestId('tab-create'));
     expect(await screen.findByText('Choose a format. Each composer unlocks as its phase ships.')).toBeTruthy();
     await press(screen.getByTestId('tab-reels'));

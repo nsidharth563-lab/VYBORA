@@ -37,6 +37,10 @@ export async function configureApp(app: NestFastifyApplication, config: AppConfi
   });
   app.enableCors({
     origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : false,
+    // @fastify/cors only allows GET/HEAD/POST by default — browsers need the rest too.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['authorization', 'content-type', 'x-request-id', 'x-client-platform', 'x-device-name', 'x-app-version'],
+    maxAge: 600,
     credentials: true,
     exposedHeaders: ['x-request-id', 'retry-after'],
   });

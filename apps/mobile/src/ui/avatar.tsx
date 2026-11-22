@@ -29,6 +29,8 @@ export function fillFor(name: string): string {
 interface AvatarProps {
   name: string;
   uri?: string | null;
+  /** Placeholder shown while the image loads. */
+  blurhash?: string | null;
   size?: AvatarSize;
   ring?: StoryRing;
   verified?: boolean;
@@ -37,7 +39,7 @@ interface AvatarProps {
   testID?: string;
 }
 
-export function Avatar({ name, uri, size = 'md', ring = 'none', verified, online, onPress, testID }: AvatarProps) {
+export function Avatar({ name, uri, blurhash, size = 'md', ring = 'none', verified, online, onPress, testID }: AvatarProps) {
   const { colors, gradients } = useAppTheme();
   const px = PX[size];
   const ringWidth = ring === 'none' ? 0 : px >= 64 ? 3 : 2;
@@ -57,7 +59,7 @@ export function Avatar({ name, uri, size = 'md', ring = 'none', verified, online
   const face = (
     <View style={[styles.face, { width: px, height: px, borderRadius: px / 2, backgroundColor: fillFor(name) }]}>
       {uri ? (
-        <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} recyclingKey={uri} />
+        <Image source={{ uri }} placeholder={blurhash ? { blurhash } : undefined} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} recyclingKey={uri} accessibilityIgnoresInvertColors />
       ) : (
         <Text style={{ color: '#FFFFFF', fontSize: px * 0.38, lineHeight: px * 0.46, fontWeight: '600' }}>{initialsOf(name)}</Text>
       )}
