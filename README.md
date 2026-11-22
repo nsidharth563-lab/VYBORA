@@ -63,7 +63,7 @@ vybora/
 │   ├── ui/         design tokens + WCAG contrast checks (components: apps/mobile/src/ui)
 │   └── config/     shared tsconfig
 ├── infrastructure/
-│   ├── docker/     docker-compose: Postgres, Redis, MinIO (S3), Mailpit
+│   ├── docker/     docker-compose: Postgres, Redis, S3 emulator (moto), Mailpit
 │   └── deployment/ production deployment plan
 └── documentation/  architecture · database · api · security
 ```
@@ -90,7 +90,7 @@ pnpm infra:up
 |---|---|---|
 | PostgreSQL | `localhost:5432` | `vybora` / `vybora`, db `vybora` |
 | Redis | `localhost:6379` | — |
-| MinIO (S3) | API `localhost:9000`, console http://localhost:9001 | `vybora` / `vybora-dev-secret` |
+| S3 storage (moto emulator) | `localhost:9000` — in-memory, uploads reset when the container restarts | any keys (`vybora` / `vybora-dev-secret` in `.env.example`) |
 | Mailpit | http://localhost:8025 (SMTP `1025`) | — |
 
 > No Docker? Any local PostgreSQL 16+ and Redis 7+ work — create a `vybora`

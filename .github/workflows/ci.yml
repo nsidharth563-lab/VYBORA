@@ -45,13 +45,12 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Start MinIO (S3-compatible storage)
+      - name: Start S3-compatible storage (moto)
+        # minio/minio was removed from Docker Hub; moto is the emulator the tests are developed against.
         run: |
-          docker run -d --name minio -p 9000:9000 \
-            -e MINIO_ROOT_USER=vybora -e MINIO_ROOT_PASSWORD=vybora-dev-secret \
-            minio/minio:latest server /data
-          for i in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live && exit 0; sleep 1; done
-          docker logs minio; exit 1
+          docker run -d --name s3 -p 9000:5000 motoserver/moto:5.2.5
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:9000/ && exit 0; sleep 1; done
+          docker logs s3; exit 1
       - name: Apply database migrations
         run: pnpm --filter @vybora/api exec prisma migrate deploy
       - name: Check schema has no drift from migrations

@@ -63,8 +63,9 @@ Only JPEG, PNG and WebP are accepted (checked from the bytes, not the declared t
 SVG, GIF, HEIC and non-images are rejected and the asset marked `FAILED`. The phone picker
 re-encodes HEIC to JPEG. Originals are never served.
 
-**Local storage:** `docker compose` runs MinIO. Without Docker, any S3-compatible server
-works (`S3_ENDPOINT`); this repo's tests were also run against the `moto` S3 emulator.
+**Local storage:** `docker compose` runs the `moto` S3 emulator (in-memory; MinIO's Docker Hub
+image was withdrawn). Any S3-compatible server works via `S3_ENDPOINT` — e.g. MinIO from its own
+registry or SeaweedFS if you want persistence. Tests run against moto locally and in CI.
 Set `S3_PUBLIC_ENDPOINT` to your computer's LAN address when uploading from a phone.
 
 ## Verified

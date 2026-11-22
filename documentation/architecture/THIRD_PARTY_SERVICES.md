@@ -14,7 +14,7 @@ a local/mock adapter, so the whole stack runs offline for development and tests.
 | **Google Cloud / Firebase** | Google OAuth clients, FCM | Phase 3 / 12 | — | FCM also delivers to iOS via APNs key |
 | **Email: Amazon SES** (or Resend) | Verification, reset, notices | Phase 3 | Mailpit (docker) | Needs domain + SPF/DKIM/DMARC |
 | **SMS: Twilio Programmable Messaging** (implemented); MSG91 for India (adapter not built yet) | Phone codes | Phase 3 | console adapter (dev only; refused in production) | India requires DLT template registration; enable SMS-pumping protection |
-| **AWS** | S3, CloudFront, RDS Postgres, ElastiCache, ECS Fargate, SES | Phase 4 (S3), deploy | MinIO, Postgres, Redis (docker) | |
+| **AWS** | S3, CloudFront, RDS Postgres, ElastiCache, ECS Fargate, SES | Phase 4 (S3), deploy | moto S3 emulator, Postgres, Redis (docker) | |
 | **OpenAI** | Text, vision, image generation, speech-to-text, moderation | Phase 9 | `mock` provider | Keys server-side only |
 | **Background removal / enhancement** | AI photo tools | Phase 9 | mock | OpenAI image edit, or a dedicated API — chosen in Phase 9 on quality/cost |
 | **Licensed music provider** | Catalogue + streaming rights | Phase 10 | mock catalogue | **Contract required** — see REQUIREMENTS_ANALYSIS §5.3 |
