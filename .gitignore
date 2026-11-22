@@ -37,3 +37,6 @@ npm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# local Redis snapshots
+dump.rdb
