@@ -53,9 +53,25 @@ describe('loadConfig', () => {
       NODE_ENV: 'production',
       JWT_ACCESS_SECRET: 'p'.repeat(48),
       OTP_PEPPER: 'q'.repeat(24),
+      IP_HASH_SECRET: 'r'.repeat(24),
       CORS_ORIGINS: 'https://admin.vybora.app',
+      SMS_PROVIDER: 'twilio',
+      TWILIO_ACCOUNT_SID: 'AC123',
+      TWILIO_AUTH_TOKEN: 'tok',
+      TWILIO_FROM: '+15005550006',
     });
     expect(c.JWT_ACCESS_SECRET).toBe('p'.repeat(48));
+  });
+
+  it('refuses console SMS/mail in production and incomplete Twilio config', () => {
+    const env = { DATABASE_URL: DB, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'p'.repeat(48), OTP_PEPPER: 'q'.repeat(24), IP_HASH_SECRET: 'r'.repeat(24) };
+    expect(() => loadConfig(env)).toThrow(/SMS_PROVIDER: "console"/);
+    expect(() => loadConfig({ ...env, SMS_PROVIDER: 'twilio' })).toThrow(/requires TWILIO_ACCOUNT_SID/);
+    expect(() => loadConfig({ ...env, SMS_PROVIDER: 'twilio', TWILIO_ACCOUNT_SID: 'AC1', TWILIO_AUTH_TOKEN: 't', TWILIO_FROM: '+1', MAIL_PROVIDER: 'console' })).toThrow(/MAIL_PROVIDER/);
+  });
+
+  it('parses Google client ids', () => {
+    expect(loadConfig({ DATABASE_URL: DB, GOOGLE_OAUTH_CLIENT_IDS: 'web.apps, ios.apps' }).GOOGLE_OAUTH_CLIENT_IDS).toEqual(['web.apps', 'ios.apps']);
   });
 
   it('fails fast without DATABASE_URL', () => {

@@ -56,6 +56,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
         'unhandled error',
       );
     }
+    const retryAfter = (body.details as { retryAfterSec?: unknown } | undefined)?.retryAfterSec;
+    if (body.statusCode === 429 && typeof retryAfter === 'number') void reply.header('retry-after', String(retryAfter));
     void reply.status(body.statusCode).send(body);
   }
 }

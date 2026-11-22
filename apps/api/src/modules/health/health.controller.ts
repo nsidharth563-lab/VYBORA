@@ -3,6 +3,7 @@ import type { FastifyReply } from 'fastify';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 import { APP_CONFIG, type AppConfig } from '../../config/config.js';
+import { Public } from '../../common/auth/auth.decorators.js';
 
 type CheckResult = { status: 'up' | 'down'; latencyMs: number; error?: string };
 
@@ -19,6 +20,7 @@ async function timed(fn: () => Promise<void>, timeoutMs = 2000): Promise<CheckRe
   }
 }
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

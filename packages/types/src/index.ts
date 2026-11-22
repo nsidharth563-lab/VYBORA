@@ -71,3 +71,41 @@ export interface AuthTokens {
   refreshToken: string;
   accessTokenExpiresAt: ISODateString;
 }
+
+/** The signed-in user's own account (never returned for other users). */
+export interface MeUser extends PublicUser {
+  email: string | null;
+  emailVerified: boolean;
+  phone: string | null;
+  phoneVerified: boolean;
+  hasPassword: boolean;
+  bio: string | null;
+  createdAt: ISODateString;
+  /** True for social sign-ups that still need a date of birth (age gate). */
+  needsProfileCompletion: boolean;
+}
+
+export interface AuthResponse {
+  user: MeUser;
+  tokens: AuthTokens;
+  /** Signing in during the deletion grace period cancels the deletion. */
+  restored?: boolean;
+  /** Where a verification code was sent after sign-up (masked). */
+  verification?: { channel: 'email' | 'phone'; sentTo: string };
+}
+
+export interface SessionInfo {
+  id: string;
+  deviceName: string | null;
+  platform: 'IOS' | 'ANDROID' | 'WEB' | null;
+  appVersion: string | null;
+  ipCountry: string | null;
+  createdAt: ISODateString;
+  lastSeenAt: ISODateString;
+  current: boolean;
+}
+
+export interface CodeSentResponse {
+  /** Masked destination, e.g. "no••@example.com". */
+  sentTo: string;
+}
